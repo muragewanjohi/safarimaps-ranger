@@ -2,8 +2,17 @@ import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import {
+  useDashboardStats,
+  useEmergencyAlerts,
+  useParkData,
+  useRangerData,
+  useRecentIncidents,
+  useRecentLocations
+} from '@/hooks/useDataService';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   StatusBar,
@@ -18,117 +27,18 @@ export default function HomeScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const [isOffline] = useState(false); // Mock offline state
   const [pressedCard, setPressedCard] = useState<string | null>(null);
+  const [pendingSyncItems] = useState(2); // Mock pending sync items
   
-  // Mock data - in real app this would come from API/state management
-  const rangerData = {
-    name: "Sarah Johnson",
-    team: "Alpha Team",
-    park: "Masai Mara National Reserve",
-    role: "Senior Wildlife Ranger"
-  };
+  // Use data service hooks
+  const { data: rangerData, loading: rangerLoading, error: rangerError } = useRangerData();
+  const { data: parkData, loading: parkLoading, error: parkError } = useParkData();
+  const { data: dashboardStats, loading: statsLoading, error: statsError } = useDashboardStats();
+  const { data: emergencyAlerts, loading: alertsLoading, error: alertsError } = useEmergencyAlerts();
+  const { data: recentIncidents, loading: incidentsLoading, error: incidentsError } = useRecentIncidents();
+  const { data: recentLocations, loading: locationsLoading, error: locationsError } = useRecentLocations();
 
-  const parkData = {
-    name: "Masai Mara National Reserve",
-    description: "World-renowned safari destination in Kenya, famous for the Great Migration",
-    location: "Narok County, Kenya",
-    established: "1961",
-    area: "1,510 km²",
-    coordinates: "-1.5053°, 35.1442°"
-  };
-
-  const dashboardStats = {
-    activeIncidents: 7,
-    wildlifeTracked: 234,
-    touristLocations: 42,
-    rangersActive: 12,
-    hotelsLodges: 8,
-    reportsToday: 18
-  };
-
-  const emergencyAlerts = [
-    {
-      id: 1,
-      type: "Tour Van Stuck",
-      severity: "High",
-      description: "8 Tourists",
-      location: "Swamp Trail Junction",
-      timeAgo: "15 min ago",
-      status: "Active"
-    },
-    {
-      id: 2,
-      type: "Missing Family",
-      severity: "Critical",
-      description: "Lost on Trail",
-      location: "Elephant Valley Trail",
-      timeAgo: "25 min ago",
-      status: "Active",
-      urgent: true
-    }
-  ];
-
-  const recentIncidents = [
-    {
-      id: 1,
-      type: "Tour Van Stuck",
-      description: "8 Tourists",
-      location: "Swamp Trail Junction",
-      timeAgo: "15 min ago",
-      severity: "High",
-      status: "Active"
-    },
-    {
-      id: 2,
-      type: "Missing Family",
-      description: "Lost on Trail",
-      location: "Elephant Valley Trail",
-      timeAgo: "25 min ago",
-      severity: "Critical",
-      status: "Active"
-    },
-    {
-      id: 3,
-      type: "Road Closure",
-      description: "Main Safari Route",
-      location: "Main Safari Route KM",
-      timeAgo: "30 min",
-      severity: "High",
-      status: "Active"
-    }
-  ];
-
-  const recentLocations = [
-    {
-      id: 1,
-      type: "African Elephant",
-      count: "12",
-      location: "Grid C-8",
-      timeAgo: "1 hour ago",
-      reportedBy: "Sarah Johnson"
-    },
-    {
-      id: 2,
-      type: "Baby Hippo Feeding Area",
-      location: "Tourist Zone A",
-      timeAgo: "2 hours ago",
-      reportedBy: "Park Management"
-    },
-    {
-      id: 3,
-      type: "Black Rhino",
-      count: "3",
-      location: "Grid D-3",
-      timeAgo: "3 hours ago",
-      reportedBy: "Ranger Smith"
-    },
-    {
-      id: 4,
-      type: "Safari Lodge & Spa",
-      location: "Accommodation Zone",
-      timeAgo: "1 day ago",
-      reportedBy: "Park Management"
-    }
-  ];
+  // Show loading state if any critical data is loading
+  const isLoading = rangerLoading || parkLoading || statsLoading;
 
   const handleQuickAction = (action: string) => {
     Alert.alert('Quick Action', `${action} feature coming soon!`);
@@ -137,6 +47,43 @@ export default function HomeScreen() {
   const handleEmergencyAction = (action: string) => {
     Alert.alert('Emergency Action', `${action} - Feature in development`);
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: '#f5f5f5' }]}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2E7D32" />
+          <ThemedText style={styles.loadingText}>Loading dashboard...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error state if critical data failed to load
+  if (rangerError || parkError || statsError) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: '#f5f5f5' }]}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.errorContainer}>
+          <IconSymbol name="exclamationmark.triangle.fill" size={48} color="#ff6b6b" />
+          <ThemedText style={styles.errorTitle}>Failed to Load Data</ThemedText>
+          <ThemedText style={styles.errorText}>
+            {rangerError || parkError || statsError}
+          </ThemedText>
+          <TouchableOpacity style={styles.retryButton}>
+            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Early return if data is not available
+  if (!rangerData || !parkData || !dashboardStats) {
+    return null;
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#f5f5f5' }]}>
@@ -147,6 +94,16 @@ export default function HomeScreen() {
         <View style={styles.titleBar}>
           <ThemedText style={styles.titleBarText}>SafariMap GameWarden</ThemedText>
         </View>
+
+        {/* Offline Status Banner */}
+        {isOffline && (
+          <View style={styles.offlineBanner}>
+            <IconSymbol name="wifi.slash" size={16} color="#fff" />
+            <ThemedText style={styles.offlineText}>
+              You are offline - {pendingSyncItems} items waiting to sync
+            </ThemedText>
+          </View>
+        )}
 
         {/* Header Card - Ranger Profile and Park Selector */}
         <View style={styles.headerCard}>
@@ -247,7 +204,7 @@ export default function HomeScreen() {
             Active tourist emergencies requiring immediate attention
           </ThemedText>
           
-          {emergencyAlerts.map((alert) => (
+          {emergencyAlerts?.map((alert) => (
             <View key={alert.id} style={styles.emergencyCard}>
               <View style={styles.emergencyCardHeader}>
                 <ThemedText style={styles.emergencyCardTitle}>
@@ -298,7 +255,7 @@ export default function HomeScreen() {
             Latest security and wildlife alerts in {parkData.name}
           </ThemedText>
           
-          {recentIncidents.map((incident) => (
+          {recentIncidents?.map((incident) => (
             <View key={incident.id} style={styles.incidentCard}>
               <View style={styles.incidentCardHeader}>
                 <ThemedText style={styles.incidentCardTitle}>
@@ -341,7 +298,7 @@ export default function HomeScreen() {
             Latest wildlife sightings and points of interest in {parkData.name}
         </ThemedText>
           
-          {recentLocations.map((location) => (
+          {recentLocations?.map((location) => (
             <View key={location.id} style={styles.locationCard}>
               <View style={styles.locationCardHeader}>
                 <ThemedText style={styles.locationCardTitle}>{location.type}</ThemedText>
@@ -457,6 +414,15 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity 
+        style={styles.fab}
+        onPress={() => Alert.alert('Quick Action', 'Quick incident/photo/add location feature coming soon!')}
+        activeOpacity={0.8}
+      >
+        <IconSymbol name="plus" size={24} color="#fff" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -483,6 +449,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
+  },
+  offlineBanner: {
+    backgroundColor: '#ff6b6b',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  offlineText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   headerCard: {
     backgroundColor: '#fff',
@@ -1010,5 +990,62 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }],
     shadowOpacity: 0.2,
     elevation: 4,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2E7D32',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

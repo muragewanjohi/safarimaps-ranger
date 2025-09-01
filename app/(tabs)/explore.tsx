@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -44,7 +45,9 @@ export default function MapScreen() {
       coordinates: '-2.1234, 34.7123',
       reportedBy: 'Sarah Johnson',
       icon: 'pawprint.fill' as const,
-      iconColor: '#4CAF50'
+      iconColor: '#4CAF50',
+      isEndangered: true,
+      timeAgo: '2 hours ago'
     },
     {
       id: 3,
@@ -86,7 +89,7 @@ export default function MapScreen() {
   ];
 
   const handleAddLocation = () => {
-    Alert.alert('Add Location', 'Add new location feature coming soon!');
+    router.push('/add-location');
   };
 
   const handleFilterSelect = (filter: string) => {
@@ -203,8 +206,15 @@ export default function MapScreen() {
                 <View style={styles.locationInfo}>
                   <View style={styles.locationTitleRow}>
                     <ThemedText style={styles.locationTitle}>{location.title}</ThemedText>
-                    <View style={styles.categoryBadge}>
-                      <ThemedText style={styles.categoryText}>{location.category}</ThemedText>
+                    <View style={styles.badgeContainer}>
+                      <View style={styles.categoryBadge}>
+                        <ThemedText style={styles.categoryText}>{location.category}</ThemedText>
+                      </View>
+                      {location.isEndangered && (
+                        <View style={styles.endangeredBadge}>
+                          <ThemedText style={styles.endangeredText}>ENDANGERED</ThemedText>
+                        </View>
+                      )}
                     </View>
                   </View>
                   <ThemedText style={styles.locationDescription}>{location.description}</ThemedText>
@@ -240,6 +250,11 @@ export default function MapScreen() {
                   <View style={styles.locationMeta}>
                     <IconSymbol name="location.fill" size={12} color="#666" />
                     <ThemedText style={styles.locationMetaText}>{location.coordinates}</ThemedText>
+                  </View>
+                  
+                  <View style={styles.locationMeta}>
+                    <IconSymbol name="clock.fill" size={12} color="#666" />
+                    <ThemedText style={styles.locationMetaText}>Last updated: {location.timeAgo}</ThemedText>
                   </View>
                   
                   <ThemedText style={styles.reportedBy}>by {location.reportedBy}</ThemedText>
@@ -488,6 +503,10 @@ const styles = StyleSheet.create({
     color: '#000',
     flex: 1,
   },
+  badgeContainer: {
+    flexDirection: 'row',
+    gap: 6,
+  },
   categoryBadge: {
     backgroundColor: '#e5e5e5',
     paddingHorizontal: 8,
@@ -498,6 +517,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#666',
     fontWeight: '500',
+  },
+  endangeredBadge: {
+    backgroundColor: '#ff6b6b',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  endangeredText: {
+    fontSize: 8,
+    color: '#fff',
+    fontWeight: 'bold',
   },
   locationDescription: {
     fontSize: 14,

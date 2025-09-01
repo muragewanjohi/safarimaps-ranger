@@ -1,50 +1,174 @@
-# Welcome to your Expo app 👋
+# SafariMap GameWarden 🦁
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A comprehensive mobile application designed to assist game wardens and conservation rangers in managing and monitoring wildlife activity, tourist safety, and incident response in national reserves.
 
-## Get started
+## 🌟 Features
 
-1. Install dependencies
+### Dashboard
+- **Ranger Profile**: Personal information, team assignment, and current park
+- **Park Information**: Detailed park data including location, area, and establishment date
+- **Statistics Overview**: Real-time metrics for incidents, wildlife tracking, and ranger activity
+- **Emergency Alerts**: Critical visitor emergencies with SOS indicators
+- **Quick Actions**: Fast access to common ranger tasks
 
+### Map View
+- **Interactive Map**: Visual representation of Masai Mara National Reserve
+- **Location Markers**: Wildlife sightings, attractions, hotels, and points of interest
+- **Filter System**: Categorize locations by type (Wildlife, Attractions, Hotels, etc.)
+- **Add Locations**: Report new wildlife sightings and points of interest
+- **Detailed Information**: Comprehensive location data with coordinates and metadata
+
+### Incident Reports
+- **Incident Management**: Track security, wildlife, and infrastructure incidents
+- **Severity Classification**: Critical, High, Medium, and Resolved status tracking
+- **Filter Options**: Sort by incident type, status, and severity
+- **Detailed Reports**: Comprehensive incident information with contact details
+- **Action Buttons**: Update status, add notes, escalate, and route information
+
+### Profile Management
+- **User Profile**: Ranger information with avatar, role, and team assignment
+- **Impact Statistics**: Conservation contributions and achievements
+- **Achievements**: Recognition badges for outstanding conservation work
+- **App Settings**: Customizable preferences for notifications, location sharing, and offline mode
+- **Quick Actions**: Profile editing, preferences, and account management
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
+- Expo CLI
+- iOS Simulator (for iOS development) or Android Studio (for Android development)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd ranger
+   ```
+
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. Start the app
-
+3. **Start the development server**
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+4. **Run on your preferred platform**
+   - **iOS Simulator**: Press `i` in the terminal
+   - **Android Emulator**: Press `a` in the terminal
+   - **Expo Go**: Scan the QR code with your mobile device
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 📱 Platform Support
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **iOS**: Native iOS app with SF Symbols
+- **Android**: Native Android app with Material Icons
+- **Web**: Progressive Web App support
 
-## Get a fresh project
+## 🏗️ Architecture
 
-When you're ready, run:
+### Tech Stack
+- **Framework**: React Native with Expo
+- **Navigation**: Expo Router (file-based routing)
+- **Icons**: SF Symbols (iOS) / Material Icons (Android/Web)
+- **Styling**: React Native StyleSheet
+- **State Management**: React Hooks (useState)
 
-```bash
-npm run reset-project
+### Project Structure
+```
+ranger/
+├── app/                    # Main application screens
+│   ├── (tabs)/            # Tab navigation screens
+│   │   ├── index.tsx      # Dashboard/Home screen
+│   │   ├── explore.tsx    # Map view screen
+│   │   ├── reports.tsx    # Incident reports screen
+
+│   │   └── profile.tsx    # Profile management screen
+│   └── _layout.tsx        # Root layout
+├── components/            # Reusable UI components
+│   ├── ui/               # UI-specific components
+│   │   └── IconSymbol.tsx # Cross-platform icon component
+│   └── ...               # Other components
+├── constants/            # App constants and themes
+├── hooks/               # Custom React hooks
+└── assets/              # Images, fonts, and other assets
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🎯 Key Components
 
-## Learn more
+### IconSymbol Component
+Cross-platform icon system that maps SF Symbols (iOS) to Material Icons (Android/Web) for consistent visual experience.
 
-To learn more about developing your project with Expo, look at the following resources:
+### ThemedText Component
+Text component with automatic theme support for light/dark modes.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Navigation Structure
+- **Dashboard**: Main overview and quick actions
+- **Map**: Interactive map with location management
+- **Reports**: Incident tracking and management
+- **Profile**: User account and settings
 
-## Join the community
+## 🔧 Development
 
-Join our community of developers creating universal apps.
+### Available Scripts
+```bash
+npm start          # Start Expo development server
+npm run android    # Run on Android emulator
+npm run ios        # Run on iOS simulator
+npm run web        # Run on web browser
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Code Style
+- TypeScript for type safety
+- Functional components with React Hooks
+- Consistent naming conventions
+- Comprehensive error handling
+- Responsive design principles
+
+## 📋 Requirements
+
+This application is designed to meet the requirements outlined in `Requirements.md`:
+
+- **Real-time Incident Tracking**: Monitor and report security, wildlife, and infrastructure incidents
+- **Tourist Safety**: Emergency response system for visitor incidents
+- **Wildlife Monitoring**: Track and log wildlife sightings and movements
+- **Offline Capability**: Work without internet connection with data sync
+- **Role-based Access**: Different interfaces for rangers and administrators
+- **Performance**: Optimized for 2GB RAM Android devices
+
+## 🚧 Future Enhancements
+
+- **Real-time Chat**: Incident coordination between rangers
+- **Heatmaps**: Visual representation of incident frequency
+- **GPS Integration**: Wildlife tracking with collar GPS data
+- **Push Notifications**: Real-time alerts for critical incidents
+- **Analytics Dashboard**: Conservation impact metrics and reporting
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📞 Support
+
+For support and questions:
+- Create an issue in the GitHub repository
+- Contact the development team
+- Check the [Expo documentation](https://docs.expo.dev/) for technical questions
+
+## 🙏 Acknowledgments
+
+- Built with [Expo](https://expo.dev/) and React Native
+- Icons provided by SF Symbols and Material Icons
+- Designed for conservation rangers and wildlife management professionals

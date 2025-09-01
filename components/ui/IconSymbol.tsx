@@ -40,6 +40,11 @@ const MAPPING = {
   'calendar': 'event',
   'gear': 'settings',
   'arrow.clockwise': 'sync',
+  'chevron.left': 'chevron-left',
+  'fork.knife': 'restaurant',
+  'xmark': 'close',
+  'leaf.fill': 'eco',
+  'badge.plus.radiowaves.right': 'badge',
 } as IconMapping;
 
 /**

@@ -1,5 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useAuth } from '@/contexts/AuthContext';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
@@ -13,19 +15,29 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
+  const { user, logout } = useAuth();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [locationSharing, setLocationSharing] = useState(true);
   const [offlineMode, setOfflineMode] = useState(true);
   const [autoSync, setAutoSync] = useState(true);
 
-  const userData = {
-    name: "Sarah Johnson",
-    role: "Senior Wildlife Ranger",
-    rangerId: "RGR-001",
-    team: "Alpha Team",
-    joinDate: "2019-03-15",
-    currentLocation: "Sector A-12",
-    avatar: "SJ"
+  // Use user data from auth context
+  const userData = user ? {
+    name: user.name,
+    role: user.role,
+    rangerId: user.rangerId,
+    team: user.team,
+    joinDate: user.joinDate,
+    currentLocation: "Sector A-12", // This could come from user data
+    avatar: user.avatar
+  } : {
+    name: "Guest User",
+    role: "Guest",
+    rangerId: "GUEST",
+    team: "N/A",
+    joinDate: "N/A",
+    currentLocation: "N/A",
+    avatar: "GU"
   };
 
   const parkData = {
@@ -119,7 +131,18 @@ export default function ProfileScreen() {
       isDestructive: true,
       action: () => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: () => console.log('Sign out') }
+        { 
+          text: 'Sign Out', 
+          style: 'destructive', 
+          onPress: async () => {
+            const response = await logout();
+            if (response.success) {
+              router.replace('/login');
+            } else {
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          }
+        }
       ])
     }
   ];
@@ -133,6 +156,11 @@ export default function ProfileScreen() {
       <StatusBar barStyle="dark-content" />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Title Bar */}
+        <View style={styles.titleBar}>
+          <ThemedText style={styles.titleBarText}>SafariMap GameWarden</ThemedText>
+        </View>
+
         {/* Header */}
         <View style={styles.header}>
           <ThemedText style={styles.title}>Profile</ThemedText>
@@ -357,6 +385,22 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  titleBar: {
+    backgroundColor: '#2E7D32',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  titleBarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
   },
   header: {
     padding: 20,

@@ -47,20 +47,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="exclamationmark.triangle.fill" color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="tracking"
-        options={{
-          title: 'Tracking',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.2.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} />,
-        }}
-      />
+              <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} />,
+          }}
+        />
     </Tabs>
   );
 }

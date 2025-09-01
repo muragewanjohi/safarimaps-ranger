@@ -199,7 +199,15 @@ export default function ReportsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <ThemedText style={styles.title}>Incident Reports</ThemedText>
+            <View style={styles.titleRow}>
+              <ThemedText style={styles.title}>Incident Reports</ThemedText>
+              <TouchableOpacity style={styles.notificationBell}>
+                <IconSymbol name="bell.fill" size={20} color="#ff6b6b" />
+                <View style={styles.notificationBadge}>
+                  <ThemedText style={styles.notificationBadgeText}>3</ThemedText>
+                </View>
+              </TouchableOpacity>
+            </View>
             <ThemedText style={styles.subtitle}>
               Security, wildlife, and infrastructure incidents in Masai Mara National Reserve
             </ThemedText>
@@ -482,11 +490,36 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 16,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 4,
+  },
+  notificationBell: {
+    position: 'relative',
+    padding: 4,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#ff6b6b',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   subtitle: {
     fontSize: 14,
