@@ -37,6 +37,9 @@ const MAPPING = {
   'clock.fill': 'access-time',
   'checkmark': 'check',
   'phone.fill': 'phone',
+  'calendar': 'event',
+  'gear': 'settings',
+  'arrow.clockwise': 'sync',
 } as IconMapping;
 
 /**
