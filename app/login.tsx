@@ -1,11 +1,12 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import { authService } from '@/services/authService';
+import { currentAuthService } from '@/services/authServiceFactory';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -29,7 +30,7 @@ export default function LoginScreen() {
       return;
     }
 
-    if (!authService.validateEmail(email)) {
+    if (!currentAuthService.validateEmail(email)) {
       Alert.alert('Invalid Email', 'Please enter a valid email address.');
       return;
     }
@@ -52,8 +53,9 @@ export default function LoginScreen() {
   };
 
   const handleForgotPassword = () => {
-    Alert.alert('Forgot Password', 'Password reset feature coming soon!');
+    router.push('/forgot-password');
   };
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -71,7 +73,11 @@ export default function LoginScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <IconSymbol name="leaf.fill" size={48} color="#2E7D32" />
+              <Image 
+                source={require('@/assets/images/logo.png')} 
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
             <ThemedText style={styles.title}>SafariMap GameWarden</ThemedText>
             <ThemedText style={styles.subtitle}>Sign in to your ranger account</ThemedText>
@@ -153,21 +159,16 @@ export default function LoginScreen() {
               </ThemedText>
             </TouchableOpacity>
 
-            {/* Demo Credentials */}
-            <View style={styles.demoContainer}>
-              <ThemedText style={styles.demoTitle}>Demo Credentials:</ThemedText>
-              <ThemedText style={styles.demoText}>Email: sarah.johnson@safarimap.com</ThemedText>
-              <ThemedText style={styles.demoText}>Password: password123</ThemedText>
-            </View>
-          </View>
 
-          {/* Sign Up Link */}
-          <View style={styles.signupContainer}>
-            <ThemedText style={styles.signupText}>Don't have an account? </ThemedText>
-            <TouchableOpacity onPress={handleSignupPress} disabled={isLoading}>
-              <ThemedText style={styles.signupLink}>Sign Up</ThemedText>
-            </TouchableOpacity>
-          </View>
+        </View>
+
+        {/* Sign Up Link */}
+        <View style={styles.signupContainer}>
+          <ThemedText style={styles.signupText}>Don't have an account? </ThemedText>
+          <TouchableOpacity onPress={handleSignupPress} disabled={isLoading}>
+            <ThemedText style={styles.signupLink}>Sign Up</ThemedText>
+          </TouchableOpacity>
+        </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -207,6 +208,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
+  },
+  logo: {
+    width: 60,
+    height: 60,
   },
   title: {
     fontSize: 28,
@@ -296,24 +301,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-  },
-  demoContainer: {
-    backgroundColor: '#f0f8f0',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0f0e0',
-  },
-  demoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2E7D32',
-    marginBottom: 8,
-  },
-  demoText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
   },
   signupContainer: {
     flexDirection: 'row',

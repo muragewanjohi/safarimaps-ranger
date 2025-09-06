@@ -1,11 +1,12 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import { authService } from '@/services/authService';
+import { currentAuthService } from '@/services/authServiceFactory';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -47,7 +48,7 @@ export default function SignupScreen() {
       return false;
     }
 
-    if (!authService.validateEmail(email)) {
+    if (!currentAuthService.validateEmail(email)) {
       Alert.alert('Validation Error', 'Please enter a valid email address.');
       return false;
     }
@@ -57,7 +58,7 @@ export default function SignupScreen() {
       return false;
     }
 
-    const passwordValidation = authService.validatePassword(password);
+    const passwordValidation = currentAuthService.validatePassword(password);
     if (!passwordValidation.isValid) {
       Alert.alert('Validation Error', passwordValidation.message || 'Invalid password.');
       return false;
@@ -73,7 +74,7 @@ export default function SignupScreen() {
       return false;
     }
 
-    if (!authService.validateRangerId(rangerId)) {
+    if (!currentAuthService.validateRangerId(rangerId)) {
       Alert.alert('Validation Error', 'Ranger ID must be in format ABC-123 (3 letters, dash, 3 numbers).');
       return false;
     }
@@ -87,27 +88,42 @@ export default function SignupScreen() {
   };
 
   const handleSignup = async () => {
+    console.log('handleSignup called');
+    
     if (!validateForm()) {
+      console.log('Form validation failed');
       return;
     }
 
+    console.log('Form validation passed, starting signup...');
     clearError();
     
-    const response = await signup({
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      password: formData.password,
-      confirmPassword: formData.confirmPassword,
-      rangerId: formData.rangerId.trim().toUpperCase(),
-      team: formData.team.trim()
-    });
+    console.log('Starting signup process...');
+    console.log('Form data:', formData);
     
-    if (response.success) {
-      Alert.alert('Success', 'Account created successfully!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
-    } else {
-      Alert.alert('Signup Failed', response.error || 'Please check your information and try again.');
+    try {
+      console.log('Calling signup function...');
+      const response = await signup({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        rangerId: formData.rangerId.trim().toUpperCase(),
+        team: formData.team.trim()
+      });
+      
+      console.log('Signup response:', response);
+      
+      if (response.success) {
+        Alert.alert('Success', 'Account created successfully!', [
+          { text: 'OK', onPress: () => router.replace('/(tabs)') }
+        ]);
+      } else {
+        Alert.alert('Signup Failed', response.error || 'Please check your information and try again.');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      Alert.alert('Signup Error', 'An unexpected error occurred. Please try again.');
     }
   };
 
@@ -137,7 +153,11 @@ export default function SignupScreen() {
               <IconSymbol name="chevron.left" size={24} color="#666" />
             </TouchableOpacity>
             <View style={styles.logoContainer}>
-              <IconSymbol name="leaf.fill" size={40} color="#2E7D32" />
+              <Image 
+                source={require('@/assets/images/logo.png')} 
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
             <ThemedText style={styles.title}>Create Account</ThemedText>
             <ThemedText style={styles.subtitle}>Join the SafariMap GameWarden team</ThemedText>
@@ -290,6 +310,17 @@ export default function SignupScreen() {
                 {isLoading ? 'Creating Account...' : 'Create Account'}
               </ThemedText>
             </TouchableOpacity>
+
+            {/* Test Button */}
+            <TouchableOpacity
+              style={[styles.signupButton, { backgroundColor: '#ff6b6b', marginTop: 10 }]}
+              onPress={() => {
+                console.log('Test button pressed!');
+                Alert.alert('Test', 'Button is working!');
+              }}
+            >
+              <ThemedText style={styles.signupButtonText}>Test Button</ThemedText>
+            </TouchableOpacity>
           </View>
 
           {/* Login Link */}
@@ -344,6 +375,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
+  },
+  logo: {
+    width: 45,
+    height: 45,
   },
   title: {
     fontSize: 24,

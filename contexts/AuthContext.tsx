@@ -1,5 +1,5 @@
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { authService } from '../services/authService';
+import { currentAuthService } from '../services/authServiceFactory';
 import { AuthResponse, LoginCredentials, SignupCredentials, User } from '../types';
 
 interface AuthContextType {
@@ -24,12 +24,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if user is authenticated on app start
+  // Check if user is authenticated on app start and listen to auth changes
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const currentUser = authService.getCurrentUser();
-        if (currentUser && authService.isAuthenticated()) {
+        const currentUser = await currentAuthService.getCurrentUser();
+        const isAuth = await currentAuthService.isAuthenticated();
+        if (currentUser && isAuth) {
           setUser(currentUser);
         }
       } catch (err) {
@@ -39,7 +40,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     };
 
+    // Initial auth check
     checkAuthStatus();
+
+    // Listen to auth state changes (only for Supabase)
+    let subscription: any = null;
+    if (currentAuthService.onAuthStateChange) {
+      const { data: { subscription: sub } } = currentAuthService.onAuthStateChange(
+        async (event: string, session: any) => {
+          console.log('Auth state changed:', event, session?.user?.id);
+          
+          if (event === 'SIGNED_IN' && session?.user) {
+            const user = await currentAuthService.getUserProfile(session.user.id);
+            if (user) {
+              setUser(user);
+            }
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+          } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+            const user = await currentAuthService.getUserProfile(session.user.id);
+            if (user) {
+              setUser(user);
+            }
+          }
+        }
+      );
+      subscription = sub;
+    }
+
+    // Cleanup subscription
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
@@ -47,7 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(true);
       setError(null);
       
-      const response = await authService.login(credentials);
+      const response = await currentAuthService.login(credentials);
       
       if (response.success && response.user) {
         setUser(response.user);
@@ -58,7 +90,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
-      setError(errorMessage);
       return {
         success: false,
         error: errorMessage
@@ -73,7 +104,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(true);
       setError(null);
       
-      const response = await authService.signup(credentials);
+      const response = await currentAuthService.signup(credentials);
       
       if (response.success && response.user) {
         setUser(response.user);
@@ -84,7 +115,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Signup failed';
-      setError(errorMessage);
       return {
         success: false,
         error: errorMessage
@@ -99,7 +129,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(true);
       setError(null);
       
-      const response = await authService.logout();
+      const response = await currentAuthService.logout();
       
       if (response.success) {
         setUser(null);
@@ -110,7 +140,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Logout failed';
-      setError(errorMessage);
       return {
         success: false,
         error: errorMessage

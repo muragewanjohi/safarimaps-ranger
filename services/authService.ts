@@ -1,3 +1,4 @@
+import { AppConfig } from '../config/appConfig';
 import { AuthResponse, LoginCredentials, SignupCredentials, User } from '../types';
 
 // Mock users for authentication
@@ -35,7 +36,7 @@ const mockPasswords: Record<string, string> = {
 };
 
 // Configuration
-const USE_MOCK_AUTH = true; // Set to false when ready to use real API
+const USE_MOCK_AUTH = AppConfig.USE_MOCK_DATA; // Use app configuration
 const API_DELAY = 1000; // Simulate network delay
 
 // Helper function to simulate API delay
@@ -59,6 +60,40 @@ export class AuthService {
       AuthService.instance = new AuthService();
     }
     return AuthService.instance;
+  }
+
+  /**
+   * Reset the service state (useful for testing)
+   */
+  reset(): void {
+    this.currentUser = null;
+    this.authToken = null;
+    this.mockUsers = [
+      {
+        id: '1',
+        email: 'sarah.johnson@safarimap.com',
+        name: 'Sarah Johnson',
+        rangerId: 'RGR-001',
+        team: 'Alpha Team',
+        role: 'ranger',
+        createdAt: '2023-01-01T00:00:00Z',
+        updatedAt: '2023-01-01T00:00:00Z',
+      },
+      {
+        id: '2',
+        email: 'mike.chen@safarimap.com',
+        name: 'Mike Chen',
+        rangerId: 'RGR-002',
+        team: 'Beta Team',
+        role: 'ranger',
+        createdAt: '2023-01-02T00:00:00Z',
+        updatedAt: '2023-01-02T00:00:00Z',
+      },
+    ];
+    this.mockPasswords = {
+      'sarah.johnson@safarimap.com': 'password123',
+      'mike.chen@safarimap.com': 'password123',
+    };
   }
 
   // Login user
@@ -207,7 +242,7 @@ export class AuthService {
   }
 
   // Get current user
-  getCurrentUser(): User | null {
+  async getCurrentUser(): Promise<User | null> {
     return this.currentUser;
   }
 
@@ -217,7 +252,7 @@ export class AuthService {
   }
 
   // Check if user is authenticated
-  isAuthenticated(): boolean {
+  async isAuthenticated(): Promise<boolean> {
     return this.currentUser !== null && this.authToken !== null;
   }
 
@@ -275,6 +310,26 @@ export class AuthService {
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : 'Network error');
     }
+  }
+
+  // Reset password
+  async resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
+    if (USE_MOCK_AUTH) {
+      await delay(API_DELAY);
+      
+      // Check if user exists
+      const user = mockUsers.find(u => u.email === email);
+      if (!user) {
+        return { success: false, error: 'No account found with this email address' };
+      }
+
+      // In a real app, this would send an email
+      // For mock, we'll just return success
+      return { success: true };
+    }
+
+    // Real API call would go here
+    throw new Error('Real password reset API not implemented yet');
   }
 }
 

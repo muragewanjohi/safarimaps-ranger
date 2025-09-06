@@ -1,3 +1,5 @@
+import { AppConfig } from '../config/appConfig';
+import { supabase } from '../lib/supabase';
 import {
     Achievement,
     ApiResponse,
@@ -27,7 +29,7 @@ import {
 } from '../data/mockData';
 
 // Configuration for switching between mock and real data
-const USE_MOCK_DATA = true; // Set to false when ready to use real API
+const USE_MOCK_DATA = AppConfig.USE_MOCK_DATA;
 
 // Simulated API delay for realistic testing
 const API_DELAY = 500; // milliseconds
@@ -73,9 +75,40 @@ export class DataService {
       return createMockResponse(mockRanger);
     }
     
-    // Real API call would go here
-    // return this.apiCall<Ranger>('/ranger/profile');
-    throw new Error('Real API not implemented yet');
+    try {
+      // Get current user from Supabase auth
+      const { data: { user } } = await supabase!.auth.getUser();
+      if (!user) {
+        return { success: false, data: null as any, error: 'User not authenticated' };
+      }
+
+      // Get user profile from profiles table
+      const { data: profile, error } = await supabase!
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error || !profile) {
+        return { success: false, data: null as any, error: 'Profile not found' };
+      }
+
+      const rangerData: Ranger = {
+        id: profile.id,
+        name: profile.name,
+        role: profile.role,
+        rangerId: profile.ranger_id,
+        team: profile.team,
+        park: profile.park,
+        avatar: profile.avatar,
+        joinDate: profile.join_date,
+        isActive: profile.is_active
+      };
+
+      return createMockResponse(rangerData);
+    } catch (error) {
+      return { success: false, data: null as any, error: 'Failed to fetch ranger data' };
+    }
   }
 
   async getParkData(): Promise<ApiResponse<Park>> {
@@ -84,9 +117,32 @@ export class DataService {
       return createMockResponse(mockPark);
     }
     
-    // Real API call would go here
-    // return this.apiCall<Park>('/park/current');
-    throw new Error('Real API not implemented yet');
+    try {
+      // Get park data from parks table
+      const { data: parks, error } = await supabase!
+        .from('parks')
+        .select('*')
+        .limit(1);
+
+      if (error || !parks || parks.length === 0) {
+        return { success: false, data: null as any, error: 'Park data not found' };
+      }
+
+      const park = parks[0];
+      const parkData: Park = {
+        id: park.id,
+        name: park.name,
+        description: park.description,
+        location: park.location,
+        established: park.established,
+        area: park.area,
+        coordinates: park.coordinates
+      };
+
+      return createMockResponse(parkData);
+    } catch (error) {
+      return { success: false, data: null as any, error: 'Failed to fetch park data' };
+    }
   }
 
   async getDashboardStats(): Promise<ApiResponse<DashboardStats>> {
@@ -95,9 +151,31 @@ export class DataService {
       return createMockResponse(mockDashboardStats);
     }
     
-    // Real API call would go here
-    // return this.apiCall<DashboardStats>('/dashboard/stats');
-    throw new Error('Real API not implemented yet');
+    try {
+      // Get counts from various tables
+      const [incidentsResult, locationsResult, reportsResult] = await Promise.all([
+        supabase!.from('incidents').select('id', { count: 'exact' }),
+        supabase!.from('locations').select('id', { count: 'exact' }),
+        supabase!.from('reports').select('id', { count: 'exact' })
+      ]);
+
+      const activeIncidents = incidentsResult.count || 0;
+      const wildlifeTracked = locationsResult.count || 0;
+      const reportsToday = reportsResult.count || 0;
+
+      const stats: DashboardStats = {
+        activeIncidents,
+        wildlifeTracked,
+        touristLocations: wildlifeTracked, // Using locations as tourist locations for now
+        rangersActive: 1, // Default to 1 for current user
+        hotelsLodges: 0, // Would need to count from locations where category = 'Hotel'
+        reportsToday
+      };
+
+      return createMockResponse(stats);
+    } catch (error) {
+      return { success: false, data: null as any, error: 'Failed to fetch dashboard stats' };
+    }
   }
 
   async getEmergencyAlerts(): Promise<ApiResponse<EmergencyAlert[]>> {
@@ -117,9 +195,32 @@ export class DataService {
       return createMockResponse(mockRecentIncidents);
     }
     
-    // Real API call would go here
-    // return this.apiCall<Incident[]>('/incidents/recent');
-    throw new Error('Real API not implemented yet');
+    try {
+      // Get recent incidents from incidents table
+      const { data: incidents, error } = await supabase!
+        .from('incidents')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        return { success: false, data: null as any, error: 'Failed to fetch incidents' };
+      }
+
+      const incidentsData: Incident[] = (incidents || []).map(incident => ({
+        id: incident.id,
+        type: incident.category,
+        description: incident.description || '',
+        location: incident.location || '',
+        timeAgo: this.getTimeAgo(incident.created_at),
+        severity: incident.severity,
+        status: incident.status
+      }));
+
+      return createMockResponse(incidentsData);
+    } catch (error) {
+      return { success: false, data: null as any, error: 'Failed to fetch recent incidents' };
+    }
   }
 
   async getRecentLocations(): Promise<ApiResponse<Location[]>> {
@@ -128,9 +229,31 @@ export class DataService {
       return createMockResponse(mockRecentLocations);
     }
     
-    // Real API call would go here
-    // return this.apiCall<Location[]>('/locations/recent');
-    throw new Error('Real API not implemented yet');
+    try {
+      // Get recent locations from locations table
+      const { data: locations, error } = await supabase!
+        .from('locations')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        return { success: false, data: null as any, error: 'Failed to fetch locations' };
+      }
+
+      const locationsData: Location[] = (locations || []).map(location => ({
+        id: location.id,
+        type: location.category,
+        location: location.coordinates,
+        timeAgo: this.getTimeAgo(location.created_at),
+        reportedBy: location.reported_by,
+        count: location.count
+      }));
+
+      return createMockResponse(locationsData);
+    } catch (error) {
+      return { success: false, data: null as any, error: 'Failed to fetch recent locations' };
+    }
   }
 
   // Reports Data
@@ -216,6 +339,17 @@ export class DataService {
   }
 
   // Helper methods
+  private getTimeAgo(dateString: string): string {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  }
+
   private getIconForCategory(category: string): string {
     const iconMap: Record<string, string> = {
       'Wildlife': 'pawprint.fill',

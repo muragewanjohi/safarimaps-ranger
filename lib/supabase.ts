@@ -1,21 +1,45 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+// Get environment variables with fallback values
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://ukwhaovrofmbcynkiemc.supabase.co';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrd2hhb3Zyb2ZtYmN5bmtpZW1jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1MDc3MTksImV4cCI6MjA3MTA4MzcxOX0.YccJtxnJQdwL_wtuCKn6Hh_2zvi7QLI4GBy3nqPLMx8';
 
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Anon Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'undefined');
+
+// Check if environment variables are available
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+  console.warn('Missing Supabase environment variables. Please check your .env file.');
+  console.warn('Supabase features will be disabled.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
+// Only create Supabase client if environment variables are available
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? (() => {
+      console.log('Creating Supabase client with URL:', supabaseUrl);
+      try {
+        const client = createClient(supabaseUrl, supabaseAnonKey, {
+          auth: {
+            storage: AsyncStorage,
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: false,
+          },
+        });
+        console.log('Supabase client created successfully');
+        return client;
+      } catch (error) {
+        console.error('Error creating Supabase client:', error);
+        return null;
+      }
+    })()
+  : (() => {
+      console.log('Cannot create Supabase client - missing credentials');
+      return null;
+    })();
+
+console.log('Final supabase client status:', supabase ? 'SUCCESS' : 'NULL');
 
 // Export types for better TypeScript support
 export type Database = {
