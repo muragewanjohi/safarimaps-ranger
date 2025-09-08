@@ -1,8 +1,12 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useIncidents } from '@/hooks/useIncidents';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
+    Image,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -14,6 +18,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function ReportsScreen() {
   const [selectedFilter, setSelectedFilter] = useState('All Incidents');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  
+  // Load incidents from Supabase
+  const { incidents, loading, error, refreshIncidents } = useIncidents();
 
   const filterOptions = [
     'All Incidents',
@@ -26,143 +33,32 @@ export default function ReportsScreen() {
     'In Progress'
   ];
 
+  // Ensure incidents is always an array and not null/undefined
+  const safeIncidents = Array.isArray(incidents) ? incidents : [];
+  
+  // Don't render if incidents is not properly initialized
+  if (!Array.isArray(incidents)) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2E7D32" />
+          <ThemedText style={styles.loadingText}>Initializing...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+  
+  // Calculate stats from incidents data
   const incidentStats = {
-    critical: 3,
-    high: 7,
-    medium: 12,
-    resolved: 8
+    critical: safeIncidents.filter(incident => incident.severity === 'Critical').length,
+    high: safeIncidents.filter(incident => incident.severity === 'High').length,
+    medium: safeIncidents.filter(incident => incident.severity === 'Medium').length,
+    resolved: safeIncidents.filter(incident => incident.status === 'Resolved').length
   };
 
-  const incidents = [
-    {
-      id: 1,
-      title: 'Tour Van Stuck in Mud - 8 Tourists',
-      category: 'Tourists',
-      description: 'Safari tour van with 8 German tourists got stuck in deep mud after heavy rains. Vehicle unable to move, tourists getting anxious.',
-      severity: 'High',
-      status: 'Open',
-      tags: ['Stuck Vehicle', '8 tourists'],
-      touristsAffected: 8,
-      tourOperator: 'Adventure Safari Tours',
-      transport: 'safari van',
-      contactInfo: '+49-89-123-4567 (Tour Leader: Hans Mueller)',
-      location: 'Swamp Trail Junction',
-      dateTime: '2024-01-20 17:45',
-      reportedBy: 'Sarah Johnson',
-      hasPhotos: true,
-      icon: 'exclamationmark.triangle.fill',
-      iconColor: '#ff6b6b'
-    },
-    {
-      id: 2,
-      title: 'Missing Tourist Family - Lost on Trail',
-      category: 'Tourists',
-      description: 'Family of 4 (2 adults, 2 children aged 8 and 12) failed to return from guided nature walk. Last seen 3 hours ago heading toward waterfall.',
-      severity: 'Critical',
-      status: 'In Progress',
-      tags: ['Lost Tourists', '4 tourists'],
-      touristsAffected: 4,
-      tourOperator: 'Nature Walks Kenya',
-      transport: 'on foot',
-      contactInfo: 'johnsmith@email.com +1-555-123-4567',
-      lastSeen: '2024-01-20 14:30',
-      location: 'Elephant Valley Trail',
-      dateTime: '2024-01-20 17:30',
-      reportedBy: 'Ranger Smith',
-      hasPhotos: false,
-      icon: 'person.2.fill',
-      iconColor: '#ff6b6b'
-    },
-    {
-      id: 3,
-      title: 'Medical Emergency - Heart Attack',
-      category: 'Medical',
-      description: 'Elderly tourist (male, 68) collapsed with suspected heart attack. First aid administered, helicopter evacuation requested.',
-      severity: 'Critical',
-      status: 'In Progress',
-      tags: ['Medical Emergency'],
-      touristsAffected: 1,
-      transport: 'on foot',
-      medicalCondition: 'Suspected myocardial infarction, conscious but chest pain',
-      location: 'Lion Rock Viewpoint',
-      dateTime: '2024-01-20 16:15',
-      reportedBy: 'Ranger Wilson',
-      hasPhotos: false,
-      icon: 'bolt.fill',
-      iconColor: '#ff6b6b'
-    },
-    {
-      id: 4,
-      title: 'Poaching Alert',
-      category: 'Security',
-      description: 'Suspicious vehicle spotted near rhino sanctuary. Multiple individuals with hunting equipment observed.',
-      severity: 'Critical',
-      status: 'In Progress',
-      tags: ['Poaching'],
-      location: 'Sector A-12',
-      dateTime: '2024-01-20 16:30',
-      reportedBy: 'Sarah Johnson',
-      hasPhotos: true,
-      icon: 'bell.fill',
-      iconColor: '#ff6b6b'
-    },
-    {
-      id: 5,
-      title: 'Road Closure - Main Safari Route',
-      category: 'Infrastructure',
-      description: 'Heavy rains have caused road collapse. Large section of tarmac has sunk, making passage impossible for vehicles.',
-      severity: 'High',
-      status: 'Open',
-      tags: ['Road Closure'],
-      severityLevel: 'Major',
-      access: 'No Access',
-      repairTime: '3-5 days',
-      alternativeRoute: 'Use Northern Loop Road via Gate B',
-      location: 'Main Safari Route KM 15',
-      dateTime: '2024-01-20 14:15',
-      reportedBy: 'Ranger Smith',
-      hasPhotos: true,
-      icon: 'exclamationmark.triangle.fill',
-      iconColor: '#ff9500'
-    },
-    {
-      id: 6,
-      title: 'Bridge Damage - Mara River Crossing',
-      category: 'Infrastructure',
-      description: 'Wooden planks on tourist viewing bridge are loose and unsafe. Risk of injury to visitors.',
-      severity: 'Critical',
-      status: 'In Progress',
-      tags: ['Bridge Issue'],
-      severityLevel: 'Critical',
-      access: 'No Access',
-      repairTime: '1-2 days',
-      alternativeRoute: 'Direct visitors to Eastern Crossing Point',
-      location: 'Mara River Bridge',
-      dateTime: '2024-01-20 12:30',
-      reportedBy: 'Sarah Johnson',
-      hasPhotos: true,
-      icon: 'exclamationmark.triangle.fill',
-      iconColor: '#ff6b6b'
-    },
-    {
-      id: 7,
-      title: 'Human-Wildlife Conflict',
-      category: 'Wildlife',
-      description: 'Elephants have broken through village fence and are destroying crops. Community requesting immediate assistance.',
-      severity: 'High',
-      status: 'Open',
-      tags: ['Wildlife Conflict'],
-      location: 'Village Border East',
-      dateTime: '2024-01-20 11:45',
-      reportedBy: 'Ranger Wilson',
-      hasPhotos: false,
-      icon: 'bolt.fill',
-      iconColor: '#ff9500'
-    }
-  ];
-
   const handleNewReport = () => {
-    Alert.alert('New Report', 'Create new incident report feature coming soon!');
+    router.push('/add-report');
   };
 
   const handleFilterSelect = (filter: string) => {
@@ -186,6 +82,36 @@ export default function ReportsScreen() {
     Alert.alert('Route Info', `Show route information for incident ${incidentId} - Feature coming soon!`);
   };
 
+  // Show loading state
+  if (loading || !Array.isArray(incidents)) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2E7D32" />
+          <ThemedText style={styles.loadingText}>Loading incidents...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.errorContainer}>
+          <IconSymbol name="exclamationmark.triangle.fill" size={48} color="#ff6b6b" />
+          <ThemedText style={styles.errorTitle}>Failed to Load Incidents</ThemedText>
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
+          <TouchableOpacity style={styles.retryButton} onPress={refreshIncidents}>
+            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -193,7 +119,14 @@ export default function ReportsScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Title Bar */}
         <View style={styles.titleBar}>
-          <ThemedText style={styles.titleBarText}>SafariMap GameWarden</ThemedText>
+          <View style={styles.titleBarContent}>
+            <Image 
+              source={require('@/assets/images/logo.png')} 
+              style={styles.titleBarLogo}
+              resizeMode="contain"
+            />
+            <ThemedText style={styles.titleBarText}>SafariMap GameWarden</ThemedText>
+          </View>
         </View>
 
         {/* Header */}
@@ -269,185 +202,162 @@ export default function ReportsScreen() {
 
         {/* Incidents List */}
         <View style={styles.incidentsSection}>
-          {incidents.map((incident) => (
-            <View key={incident.id} style={styles.incidentCard}>
-              {/* SOS Badge and Title */}
-              <View style={styles.incidentHeader}>
-                <View style={styles.sosBadge}>
-                  <ThemedText style={styles.sosText}>SOS</ThemedText>
-                </View>
-                <View style={styles.incidentTitleContainer}>
-                  <ThemedText style={styles.incidentTitle}>{incident.title}</ThemedText>
-                  <View style={styles.incidentTags}>
-                    <View style={[
-                      styles.severityBadge, 
-                      incident.severity === 'Critical' ? styles.criticalBadge : 
-                      incident.severity === 'High' ? styles.highBadge : styles.mediumBadge
-                    ]}>
-                      <ThemedText style={styles.severityText}>{incident.severity}</ThemedText>
-                    </View>
-                    <View style={[
-                      styles.statusBadge,
-                      incident.status === 'In Progress' ? styles.inProgressBadge : styles.openBadge
-                    ]}>
-                      <ThemedText style={styles.statusText}>{incident.status}</ThemedText>
-                    </View>
-                    {incident.tags.map((tag, index) => (
-                      <View key={index} style={styles.tagBadge}>
-                        <ThemedText style={styles.tagText}>{tag}</ThemedText>
+          {safeIncidents.length === 0 ? (
+            <View style={styles.emptyState}>
+              <IconSymbol name="exclamationmark.triangle" size={48} color="#ccc" />
+              <ThemedText style={styles.emptyStateTitle}>No Incidents Found</ThemedText>
+              <ThemedText style={styles.emptyStateText}>
+                No incidents match your current filter. Try adjusting your filter or check back later.
+              </ThemedText>
+            </View>
+          ) : (
+            safeIncidents.map((incident) => {
+              // Ensure tags and photos are always arrays
+              const safeTags = Array.isArray(incident.tags) ? incident.tags : [];
+              const safePhotos = Array.isArray(incident.photos) ? incident.photos : [];
+              
+              return (
+                <View key={incident.id} style={styles.incidentCard}>
+                {/* SOS Badge and Title */}
+                <View style={styles.incidentHeader}>
+                  <View style={styles.sosBadge}>
+                    <ThemedText style={styles.sosText}>SOS</ThemedText>
+                  </View>
+                  <View style={styles.incidentTitleContainer}>
+                    <ThemedText style={styles.incidentTitle}>{incident.title}</ThemedText>
+                    <View style={styles.incidentTags}>
+                      <View style={[
+                        styles.severityBadge, 
+                        incident.severity === 'Critical' ? styles.criticalBadge : 
+                          incident.severity === 'High' ? styles.highBadge : 
+                          incident.severity === 'Medium' ? styles.mediumBadge : styles.lowBadge
+                      ]}>
+                        <ThemedText style={styles.severityText}>{incident.severity}</ThemedText>
                       </View>
-                    ))}
+                      <View style={[
+                        styles.statusBadge,
+                          incident.status === 'In Progress' ? styles.inProgressBadge : 
+                          incident.status === 'Resolved' ? styles.resolvedBadge : styles.openBadge
+                      ]}>
+                        <ThemedText style={styles.statusText}>{incident.status}</ThemedText>
+                      </View>
+                      {safeTags.map((tag, index) => (
+                        <View key={index} style={styles.tagBadge}>
+                          <ThemedText style={styles.tagText}>{tag}</ThemedText>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 </View>
-              </View>
 
-              {/* Description */}
-              <ThemedText style={styles.incidentDescription}>{incident.description}</ThemedText>
+                {/* Description */}
+                <ThemedText style={styles.incidentDescription}>{incident.description}</ThemedText>
 
-              {/* Key Details Section */}
-              {(incident.touristsAffected || incident.tourOperator || incident.transport || incident.contactInfo || incident.lastSeen || incident.medicalCondition) && (
-                <View style={styles.keyDetailsSection}>
-                  {incident.touristsAffected && (
-                    <View style={styles.detailRow}>
-                      <ThemedText style={styles.detailLabel}>Tourists Affected:</ThemedText>
-                      <View style={styles.detailBadges}>
-                        <View style={styles.affectedBadge}>
-                          <ThemedText style={styles.affectedText}>{incident.touristsAffected} people</ThemedText>
-                        </View>
-                        <View style={styles.rescueBadge}>
-                          <IconSymbol name="person.2.fill" size={12} color="#fff" />
-                          <ThemedText style={styles.rescueText}>Rescue Required</ThemedText>
+                {/* Key Details Section */}
+                {(incident.tourists_affected || incident.tour_operator || incident.transport || incident.contact_info || incident.medical_condition) && (
+                  <View style={styles.keyDetailsSection}>
+                    {incident.tourists_affected && (
+                      <View style={styles.detailRow}>
+                        <ThemedText style={styles.detailLabel}>Tourists Affected:</ThemedText>
+                        <View style={styles.detailBadges}>
+                          <View style={styles.affectedBadge}>
+                            <ThemedText style={styles.affectedText}>{incident.tourists_affected} people</ThemedText>
+                          </View>
+                          <View style={styles.rescueBadge}>
+                            <IconSymbol name="person.2.fill" size={12} color="#fff" />
+                            <ThemedText style={styles.rescueText}>Rescue Required</ThemedText>
+                          </View>
                         </View>
                       </View>
-                    </View>
-                  )}
-                  
-                  {incident.tourOperator && (
-                    <View style={styles.detailRow}>
-                      <ThemedText style={styles.detailLabel}>Tour Operator:</ThemedText>
-                      <ThemedText style={styles.detailValue}>{incident.tourOperator}</ThemedText>
-                    </View>
-                  )}
-                  
-                  {incident.transport && (
-                    <View style={styles.detailRow}>
-                      <ThemedText style={styles.detailLabel}>Transport:</ThemedText>
-                      <ThemedText style={styles.detailValue}>{incident.transport}</ThemedText>
-                    </View>
-                  )}
-                  
-                  {incident.contactInfo && (
-                    <View style={styles.detailRow}>
-                      <ThemedText style={styles.detailLabel}>Contact Info:</ThemedText>
-                      <ThemedText style={styles.detailValue}>{incident.contactInfo}</ThemedText>
-                    </View>
-                  )}
-                  
-                  {incident.lastSeen && (
-                    <View style={styles.detailRow}>
-                      <ThemedText style={styles.detailLabel}>Last Seen:</ThemedText>
-                      <ThemedText style={styles.detailValue}>{incident.lastSeen}</ThemedText>
-                    </View>
-                  )}
-                  
-                  {incident.medicalCondition && (
-                    <View style={styles.detailRow}>
-                      <ThemedText style={styles.detailLabel}>Medical Condition:</ThemedText>
-                      <ThemedText style={styles.detailValue}>{incident.medicalCondition}</ThemedText>
-                    </View>
-                  )}
-                  
-                  {(incident.severityLevel || incident.access || incident.repairTime || incident.alternativeRoute) && (
-                    <>
-                      {incident.severityLevel && (
-                        <View style={styles.detailRow}>
-                          <ThemedText style={styles.detailLabel}>Severity:</ThemedText>
-                          <View style={[
-                            styles.severityLevelBadge,
-                            incident.severityLevel === 'Critical' ? styles.criticalLevelBadge : styles.majorLevelBadge
-                          ]}>
-                            <ThemedText style={styles.severityLevelText}>{incident.severityLevel}</ThemedText>
-                          </View>
-                        </View>
-                      )}
-                      
-                      {incident.access && (
-                        <View style={styles.detailRow}>
-                          <ThemedText style={styles.detailLabel}>Access:</ThemedText>
-                          <View style={styles.accessBadge}>
-                            <ThemedText style={styles.accessText}>{incident.access}</ThemedText>
-                          </View>
-                        </View>
-                      )}
-                      
-                      {incident.repairTime && (
-                        <View style={styles.detailRow}>
-                          <ThemedText style={styles.detailLabel}>Est. Repair Time:</ThemedText>
-                          <ThemedText style={styles.detailValue}>{incident.repairTime}</ThemedText>
-                        </View>
-                      )}
-                      
-                      {incident.alternativeRoute && (
-                        <View style={styles.detailRow}>
-                          <ThemedText style={styles.detailLabel}>Alternative Route:</ThemedText>
-                          <ThemedText style={styles.detailValue}>{incident.alternativeRoute}</ThemedText>
-                        </View>
-                      )}
-                    </>
-                  )}
+                    )}
+                    
+                    {incident.tour_operator && (
+                      <View style={styles.detailRow}>
+                        <ThemedText style={styles.detailLabel}>Tour Operator:</ThemedText>
+                        <ThemedText style={styles.detailValue}>{incident.tour_operator}</ThemedText>
+                      </View>
+                    )}
+                    
+                    {incident.transport && (
+                      <View style={styles.detailRow}>
+                        <ThemedText style={styles.detailLabel}>Transport:</ThemedText>
+                        <ThemedText style={styles.detailValue}>{incident.transport}</ThemedText>
+                      </View>
+                    )}
+                    
+                    {incident.contact_info && (
+                      <View style={styles.detailRow}>
+                        <ThemedText style={styles.detailLabel}>Contact Info:</ThemedText>
+                        <ThemedText style={styles.detailValue}>{incident.contact_info}</ThemedText>
+                      </View>
+                    )}
+                    
+                    {incident.medical_condition && (
+                      <View style={styles.detailRow}>
+                        <ThemedText style={styles.detailLabel}>Medical Condition:</ThemedText>
+                        <ThemedText style={styles.detailValue}>{incident.medical_condition}</ThemedText>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Photos Section */}
+                {safePhotos.length > 0 && (
+                  <View style={styles.photosSection}>
+                    <ThemedText style={styles.photosTitle}>Photos ({safePhotos.length})</ThemedText>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScrollView}>
+                      {safePhotos.map((photoUrl, index) => (
+                        <Image key={index} source={{ uri: photoUrl }} style={styles.incidentPhoto} />
+                      ))}
+                    </ScrollView>
                 </View>
               )}
 
-              {/* Metadata */}
-              <View style={styles.incidentMetadata}>
-                <View style={styles.metadataItem}>
-                  <IconSymbol name="location.fill" size={12} color="#666" />
-                  <ThemedText style={styles.metadataText}>{incident.location}</ThemedText>
+                {/* Metadata */}
+                <View style={styles.incidentMetadata}>
+                  <View style={styles.metadataItem}>
+                    <IconSymbol name="location.fill" size={12} color="#666" />
+                    <ThemedText style={styles.metadataText}>{incident.coordinates}</ThemedText>
+                  </View>
+                  <View style={styles.metadataItem}>
+                    <IconSymbol name="clock.fill" size={12} color="#666" />
+                    <ThemedText style={styles.metadataText}>
+                      {new Date(incident.created_at).toLocaleString()}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.metadataItem}>
+                    <IconSymbol name="person.fill" size={12} color="#666" />
+                    <ThemedText style={styles.metadataText}>
+                      by {incident.reported_by_name}
+                    </ThemedText>
+                  </View>
                 </View>
-                <View style={styles.metadataItem}>
-                  <IconSymbol name="clock.fill" size={12} color="#666" />
-                  <ThemedText style={styles.metadataText}>{incident.dateTime}</ThemedText>
-                </View>
-                <View style={styles.metadataItem}>
-                  <IconSymbol name="camera.fill" size={12} color="#666" />
-                  <ThemedText style={styles.metadataText}>
-                    {incident.hasPhotos ? 'Photos' : 'No Photos'} by {incident.reportedBy}
-                  </ThemedText>
-                </View>
-              </View>
 
-              {/* Action Buttons */}
-              <View style={styles.actionButtons}>
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={() => handleUpdateStatus(incident.id)}
-                >
-                  <ThemedText style={styles.actionButtonText}>Update Status</ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={() => handleAddNote(incident.id)}
-                >
-                  <ThemedText style={styles.actionButtonText}>Add Note</ThemedText>
-                </TouchableOpacity>
-                {incident.category === 'Infrastructure' && incident.alternativeRoute && (
+                {/* Action Buttons */}
+                <View style={styles.actionButtons}>
                   <TouchableOpacity 
                     style={styles.actionButton}
-                    onPress={() => handleRouteInfo(incident.id)}
+                    onPress={() => handleUpdateStatus(incident.id)}
                   >
-                    <IconSymbol name="location.fill" size={14} color="#000" />
-                    <ThemedText style={styles.actionButtonText}>Route Info</ThemedText>
+                    <ThemedText style={styles.actionButtonText}>Update Status</ThemedText>
                   </TouchableOpacity>
-                )}
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.escalateButton]}
-                  onPress={() => handleEscalate(incident.id)}
-                >
-                  <ThemedText style={styles.escalateButtonText}>Escalate</ThemedText>
-                </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.actionButton}
+                    onPress={() => handleAddNote(incident.id)}
+                  >
+                    <ThemedText style={styles.actionButtonText}>Add Note</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.actionButton, styles.escalateButton]}
+                    onPress={() => handleEscalate(incident.id)}
+                  >
+                    <ThemedText style={styles.escalateButtonText}>Escalate</ThemedText>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          ))}
+              );
+            })
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -464,19 +374,36 @@ const styles = StyleSheet.create({
   },
   titleBar: {
     backgroundColor: '#2E7D32',
-    paddingVertical: 18,
+    paddingTop: 12,
+    paddingBottom: 16,
     paddingHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  titleBarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+  },
+  titleBarLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 6,
   },
   titleBarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '700',
     color: '#fff',
-    textAlign: 'center',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   header: {
     flexDirection: 'row',
@@ -829,5 +756,91 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#fff',
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  lowBadge: {
+    backgroundColor: '#4caf50',
+  },
+  resolvedBadge: {
+    backgroundColor: '#4caf50',
+  },
+  photosSection: {
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  photosTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
+  },
+  photosScrollView: {
+    flexDirection: 'row',
+  },
+  incidentPhoto: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
   },
 });

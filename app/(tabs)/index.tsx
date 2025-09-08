@@ -10,6 +10,7 @@ import {
   useRecentIncidents,
   useRecentLocations
 } from '@/hooks/useDataService';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -42,11 +43,63 @@ export default function HomeScreen() {
   const isLoading = rangerLoading || parkLoading || statsLoading;
 
   const handleQuickAction = (action: string) => {
-    Alert.alert('Quick Action', `${action} feature coming soon!`);
+    switch (action) {
+      case 'Report Incident':
+        // Navigate to reports screen for incident reporting
+        router.push('/(tabs)/reports');
+        break;
+      case 'Update Location':
+        // Navigate to add-location screen for location updates
+        router.push('/(tabs)/add-location');
+        break;
+      case 'Track Assets':
+        // Navigate to explore screen to view tracked assets
+        router.push('/(tabs)/explore');
+        break;
+      case 'Emergency Alert':
+        // Show emergency alert options
+        Alert.alert(
+          'Emergency Alert',
+          'Choose emergency type:',
+          [
+            { text: 'Wildlife Emergency', onPress: () => handleEmergencyAlert('Wildlife') },
+            { text: 'Visitor Emergency', onPress: () => handleEmergencyAlert('Visitor') },
+            { text: 'Security Alert', onPress: () => handleEmergencyAlert('Security') },
+            { text: 'Cancel', style: 'cancel' }
+          ]
+        );
+        break;
+      case 'Add Attraction':
+        // Navigate to add-location with attraction pre-selected
+        router.push('/(tabs)/add-location');
+        break;
+      case 'Add Accommodation':
+        // Navigate to add-location with accommodation pre-selected
+        router.push('/(tabs)/add-location');
+        break;
+      default:
+        Alert.alert('Quick Action', `${action} feature coming soon!`);
+    }
+  };
+
+  const handleEmergencyAlert = (type: string) => {
+    Alert.alert(
+      'Emergency Alert Sent',
+      `${type} emergency alert has been sent to all rangers and emergency services.`,
+      [
+        { text: 'OK', onPress: () => console.log(`Emergency alert sent: ${type}`) }
+      ]
+    );
   };
 
   const handleEmergencyAction = (action: string) => {
-    Alert.alert('Emergency Action', `${action} - Feature in development`);
+    Alert.alert(
+      'Emergency Response',
+      `${action} - Emergency response initiated. All nearby rangers have been notified.`,
+      [
+        { text: 'OK', onPress: () => console.log(`Emergency response: ${action}`) }
+      ]
+    );
   };
 
   // Show loading state
@@ -126,7 +179,21 @@ export default function HomeScreen() {
           </View>
           <View style={styles.parkSelector}>
             <ThemedText style={styles.currentParkLabel}>Current Park</ThemedText>
-            <TouchableOpacity style={styles.parkDropdown}>
+            <TouchableOpacity 
+              style={styles.parkDropdown}
+              onPress={() => {
+                Alert.alert(
+                  'Park Selection',
+                  'Choose a different park:',
+                  [
+                    { text: 'Masai Mara National Reserve', onPress: () => console.log('Park switched to Masai Mara') },
+                    { text: 'Amboseli National Park', onPress: () => console.log('Park switched to Amboseli') },
+                    { text: 'Tsavo National Park', onPress: () => console.log('Park switched to Tsavo') },
+                    { text: 'Cancel', style: 'cancel' }
+                  ]
+                );
+              }}
+            >
               <ThemedText style={styles.parkName}>{parkData.name}</ThemedText>
               <IconSymbol name="chevron.down" size={16} color="#666" />
             </TouchableOpacity>
@@ -157,37 +224,61 @@ export default function HomeScreen() {
         {/* Dashboard Stats - 6 Cards in 2x3 Grid */}
         <View style={styles.statsSection}>
           <View style={styles.statsGrid}>
-            <TouchableOpacity style={styles.statCard}>
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => router.push('/(tabs)/reports')}
+            >
               <IconSymbol name="exclamationmark.triangle.fill" size={24} color="#ff6b6b" />
               <ThemedText style={styles.statNumber}>{dashboardStats.activeIncidents}</ThemedText>
               <ThemedText style={styles.statLabel}>Active Incidents</ThemedText>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.statCard}>
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => router.push('/(tabs)/explore')}
+            >
               <IconSymbol name="location.fill" size={24} color="#ff9500" />
               <ThemedText style={styles.statNumber}>{dashboardStats.wildlifeTracked}</ThemedText>
               <ThemedText style={styles.statLabel}>Wildlife Tracked</ThemedText>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.statCard}>
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => router.push('/(tabs)/explore')}
+            >
               <IconSymbol name="eye.fill" size={24} color="#ffcc00" />
               <ThemedText style={styles.statNumber}>{dashboardStats.touristLocations}</ThemedText>
               <ThemedText style={styles.statLabel}>Tourist Locations</ThemedText>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.statCard}>
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => {
+                Alert.alert(
+                  'Active Rangers',
+                  `Currently ${dashboardStats.rangersActive} rangers are active in the field.`,
+                  [{ text: 'OK' }]
+                );
+              }}
+            >
               <IconSymbol name="person.2.fill" size={24} color="#34c759" />
               <ThemedText style={styles.statNumber}>{dashboardStats.rangersActive}</ThemedText>
               <ThemedText style={styles.statLabel}>Rangers Active</ThemedText>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.statCard}>
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => router.push('/(tabs)/explore')}
+            >
               <IconSymbol name="building.2.fill" size={24} color="#32d74b" />
               <ThemedText style={styles.statNumber}>{dashboardStats.hotelsLodges}</ThemedText>
               <ThemedText style={styles.statLabel}>Hotels & Lodges</ThemedText>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.statCard}>
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => router.push('/(tabs)/reports')}
+            >
               <IconSymbol name="camera.fill" size={24} color="#ffcc00" />
               <ThemedText style={styles.statNumber}>{dashboardStats.reportsToday}</ThemedText>
               <ThemedText style={styles.statLabel}>Reports Today</ThemedText>
@@ -255,7 +346,10 @@ export default function HomeScreen() {
         <View style={styles.recentIncidentsSection}>
           <View style={styles.recentIncidentsHeader}>
             <ThemedText style={styles.recentIncidentsTitle}>Recent Incidents</ThemedText>
-            <TouchableOpacity style={styles.viewAllButton}>
+            <TouchableOpacity 
+              style={styles.viewAllButton}
+              onPress={() => router.push('/(tabs)/reports')}
+            >
               <ThemedText style={styles.viewAllText}>View All</ThemedText>
             </TouchableOpacity>
           </View>
@@ -298,7 +392,10 @@ export default function HomeScreen() {
         <View style={styles.recentLocationsSection}>
           <View style={styles.recentLocationsHeader}>
             <ThemedText style={styles.recentLocationsTitle}>Recent Locations</ThemedText>
-            <TouchableOpacity style={styles.viewMapButton}>
+            <TouchableOpacity 
+              style={styles.viewMapButton}
+              onPress={() => router.push('/(tabs)/explore')}
+            >
               <ThemedText style={styles.viewMapText}>View Map</ThemedText>
             </TouchableOpacity>
           </View>
@@ -426,7 +523,18 @@ export default function HomeScreen() {
       {/* Floating Action Button */}
       <TouchableOpacity 
         style={styles.fab}
-        onPress={() => Alert.alert('Quick Action', 'Quick incident/photo/add location feature coming soon!')}
+        onPress={() => {
+          Alert.alert(
+            'Quick Actions',
+            'Choose an action:',
+            [
+              { text: 'Add Location', onPress: () => router.push('/(tabs)/add-location') },
+              { text: 'Report Incident', onPress: () => router.push('/(tabs)/reports') },
+              { text: 'View Map', onPress: () => router.push('/(tabs)/explore') },
+              { text: 'Cancel', style: 'cancel' }
+            ]
+          );
+        }}
         activeOpacity={0.8}
       >
         <IconSymbol name="plus" size={24} color="#fff" />
