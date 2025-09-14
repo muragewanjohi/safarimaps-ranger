@@ -24,6 +24,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Clear any previous errors when component mounts
+  React.useEffect(() => {
+    clearError();
+  }, []);
+
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Missing Information', 'Please enter both email and password.');

@@ -49,20 +49,20 @@ export function useParkData() {
   return useApiCall(() => dataService.getParkData());
 }
 
-export function useDashboardStats() {
-  return useApiCall(() => dataService.getDashboardStats());
+export function useDashboardStats(parkId?: string) {
+  return useApiCall(() => dataService.getDashboardStats(parkId), [parkId]);
 }
 
-export function useEmergencyAlerts() {
-  return useApiCall(() => dataService.getEmergencyAlerts());
+export function useEmergencyAlerts(parkId?: string) {
+  return useApiCall(() => dataService.getEmergencyAlerts(parkId), [parkId]);
 }
 
-export function useRecentIncidents() {
-  return useApiCall(() => dataService.getRecentIncidents());
+export function useRecentIncidents(parkId?: string) {
+  return useApiCall(() => dataService.getRecentIncidents(parkId), [parkId]);
 }
 
-export function useRecentLocations() {
-  return useApiCall(() => dataService.getRecentLocations());
+export function useRecentLocations(parkId?: string) {
+  return useApiCall(() => dataService.getRecentLocations(parkId), [parkId]);
 }
 
 export function useReports() {

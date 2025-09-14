@@ -61,10 +61,9 @@ export class SupabaseAuthService {
         options: {
           data: {
             name: credentials.name,
-            role: 'Wildlife Ranger',
-            ranger_id: credentials.rangerId,
-            team: credentials.team,
-            park: 'Masai Mara National Reserve',
+            role: credentials.role || 'Ranger',
+            ranger_id: credentials.rangerId || null,
+            team: credentials.team || null,
             avatar: credentials.name.split(' ').map(n => n[0]).join('').toUpperCase(),
           }
         }
@@ -78,28 +77,99 @@ export class SupabaseAuthService {
       }
 
       if (authData.user) {
-        console.log('User created successfully, creating temporary user object...');
+        console.log('User created successfully, waiting for profile creation...');
         
-        // For now, create a temporary user object from auth data
-        // This will work until we set up the database schema
-        const tempUser: User = {
-          id: authData.user.id,
-          email: authData.user.email || '',
-          name: credentials.name,
-          role: 'Wildlife Ranger',
-          rangerId: credentials.rangerId,
-          team: credentials.team,
-          park: 'Masai Mara National Reserve',
-          avatar: credentials.name.split(' ').map(n => n[0]).join('').toUpperCase(),
-          joinDate: new Date().toISOString().split('T')[0],
-          isActive: true,
+        // Wait a moment for the trigger to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Get the created profile (trigger should have created it)
+        const { data: profile, error: profileError } = await supabase!
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+        
+        if (profileError || !profile) {
+          console.log('Profile not found after user creation:', profileError);
+          // Try to create profile manually as fallback
+          const { data: profileResult, error: manualProfileError } = await supabase!
+            .rpc('create_user_profile', {
+              user_id: authData.user.id,
+              user_name: credentials.name,
+              user_email: credentials.email,
+              user_role: credentials.role || 'Ranger',
+              ranger_id: credentials.rangerId || null,
+              team: credentials.team || null
+            });
+          
+          if (manualProfileError || !profileResult) {
+            console.log('Manual profile creation also failed:', manualProfileError);
+            return { 
+              success: false, 
+              error: 'Failed to create user profile. Please try again.' 
+            };
+          }
+          
+          // Fetch the manually created profile
+          const { data: manualProfile, error: fetchError } = await supabase!
+            .from('profiles')
+            .select('*')
+            .eq('id', authData.user.id)
+            .single();
+          
+          if (fetchError || !manualProfile) {
+            console.log('Failed to fetch manually created profile:', fetchError);
+            return { 
+              success: false, 
+              error: 'Profile created but failed to fetch. Please try logging in.' 
+            };
+          }
+          
+          // Use the manually created profile
+          const user: User = {
+            id: manualProfile.id,
+            email: manualProfile.email || authData.user.email || '',
+            name: manualProfile.name,
+            role: manualProfile.role,
+            rangerId: manualProfile.ranger_id,
+            team: manualProfile.team,
+            park: 'Masai Mara National Reserve',
+            avatar: manualProfile.avatar,
+            joinDate: manualProfile.join_date,
+            isActive: manualProfile.is_active,
+          };
+
+          console.log('Created user from manually created profile:', user);
+          
+          return {
+            success: true,
+            user: user,
+            token: authData.session?.access_token,
+            message: 'Account created successfully'
+          };
+        }
+        
+        console.log('Profile created by trigger:', profile);
+        
+        // Create user object from profile data
+        const user: User = {
+          id: profile.id,
+          email: profile.email || authData.user.email || '',
+          name: profile.name,
+          role: profile.role,
+          rangerId: profile.ranger_id,
+          team: profile.team,
+          park: 'Masai Mara National Reserve', // This will be updated when we implement park selection
+          avatar: profile.avatar,
+          joinDate: profile.join_date,
+          isActive: profile.is_active,
         };
 
-        console.log('Created temporary user:', tempUser);
+        console.log('Created user from trigger-created profile:', user);
         
         return {
           success: true,
-          user: tempUser,
+          user: user,
           token: authData.session?.access_token,
           message: 'Account created successfully'
         };
@@ -160,21 +230,87 @@ export class SupabaseAuthService {
         .eq('id', userId)
         .single();
 
-      if (error || !data) return null;
+      if (error || !data) {
+        // If profile doesn't exist, try to create one
+        console.log('Profile not found, attempting to create one...');
+        return await this.createProfileForExistingUser(userId);
+      }
 
       return {
         id: data.id,
-        email: '', // Will be filled from auth user if needed
+        email: data.email || '',
         name: data.name,
         role: data.role,
         rangerId: data.ranger_id,
         team: data.team,
-        park: data.park,
+        park: 'Masai Mara National Reserve', // Default park
         avatar: data.avatar,
         joinDate: data.join_date,
         isActive: data.is_active,
       };
     } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+  }
+
+  // Create profile for existing user who doesn't have one
+  private async createProfileForExistingUser(userId: string): Promise<User | null> {
+    if (!this.isSupabaseAvailable()) {
+      return null;
+    }
+
+    try {
+      // Get user data from auth
+      const { data: { user }, error: userError } = await supabase!.auth.getUser();
+      
+      if (userError || !user) {
+        console.log('Could not fetch user data:', userError);
+        return null;
+      }
+
+      // Create profile using the helper function
+      const { data: profileResult, error: profileError } = await supabase!
+        .rpc('create_user_profile', {
+          user_id: userId,
+          user_name: user.user_metadata?.name || 'New User',
+          user_email: user.email || '',
+          user_role: 'Visitor', // Default to visitor for existing users
+          ranger_id: null,
+          team: null
+        });
+      
+      if (profileError || !profileResult) {
+        console.log('Failed to create profile for existing user:', profileError);
+        return null;
+      }
+
+      // Fetch the created profile
+      const { data: profile, error: fetchError } = await supabase!
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError || !profile) {
+        console.log('Failed to fetch created profile:', fetchError);
+        return null;
+      }
+
+      return {
+        id: profile.id,
+        email: profile.email || user.email || '',
+        name: profile.name,
+        role: profile.role,
+        rangerId: profile.ranger_id,
+        team: profile.team,
+        park: 'Masai Mara National Reserve',
+        avatar: profile.avatar,
+        joinDate: profile.join_date,
+        isActive: profile.is_active,
+      };
+    } catch (error) {
+      console.error('Error creating profile for existing user:', error);
       return null;
     }
   }

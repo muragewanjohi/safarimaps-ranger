@@ -106,15 +106,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       const response = await currentAuthService.signup(credentials);
       
-      if (response.success && response.user) {
+      // Only set user if signup was truly successful
+      if (response.success === true && response.user) {
         setUser(response.user);
       } else {
+        // Don't set user on failure, and set error
         setError(response.error || 'Signup failed');
       }
       
       return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Signup failed';
+      setError(errorMessage);
       return {
         success: false,
         error: errorMessage

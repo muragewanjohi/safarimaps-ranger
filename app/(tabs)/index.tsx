@@ -1,17 +1,17 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
+import { usePark } from '@/contexts/ParkContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import {
   useDashboardStats,
   useEmergencyAlerts,
-  useParkData,
   useRangerData,
   useRecentIncidents,
   useRecentLocations
 } from '@/hooks/useDataService';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -31,13 +31,15 @@ export default function HomeScreen() {
   const [pressedCard, setPressedCard] = useState<string | null>(null);
   const [pendingSyncItems] = useState(2); // Mock pending sync items
   
+  // Use park context
+  const { selectedPark, setSelectedPark, availableParks, isLoading: parkLoading } = usePark();
+  
   // Use data service hooks
   const { data: rangerData, loading: rangerLoading, error: rangerError } = useRangerData();
-  const { data: parkData, loading: parkLoading, error: parkError } = useParkData();
-  const { data: dashboardStats, loading: statsLoading, error: statsError } = useDashboardStats();
-  const { data: emergencyAlerts, loading: alertsLoading, error: alertsError } = useEmergencyAlerts();
-  const { data: recentIncidents, loading: incidentsLoading, error: incidentsError } = useRecentIncidents();
-  const { data: recentLocations, loading: locationsLoading, error: locationsError } = useRecentLocations();
+  const { data: dashboardStats, loading: statsLoading, error: statsError } = useDashboardStats(selectedPark?.id);
+  const { data: emergencyAlerts, loading: alertsLoading, error: alertsError } = useEmergencyAlerts(selectedPark?.id);
+  const { data: recentIncidents, loading: incidentsLoading, error: incidentsError } = useRecentIncidents(selectedPark?.id);
+  const { data: recentLocations, loading: locationsLoading, error: locationsError } = useRecentLocations(selectedPark?.id);
 
   // Show loading state if any critical data is loading
   const isLoading = rangerLoading || parkLoading || statsLoading;
@@ -116,7 +118,7 @@ export default function HomeScreen() {
   }
 
   // Show error state if critical data failed to load
-  if (rangerError || parkError || statsError) {
+  if (rangerError || statsError) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: '#f5f5f5' }]}>
         <StatusBar barStyle="dark-content" />
@@ -124,7 +126,7 @@ export default function HomeScreen() {
           <IconSymbol name="exclamationmark.triangle.fill" size={48} color="#ff6b6b" />
           <ThemedText style={styles.errorTitle}>Failed to Load Data</ThemedText>
           <ThemedText style={styles.errorText}>
-            {rangerError || parkError || statsError}
+            {rangerError || statsError}
           </ThemedText>
           <TouchableOpacity style={styles.retryButton}>
             <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
@@ -135,7 +137,7 @@ export default function HomeScreen() {
   }
 
   // Early return if data is not available
-  if (!rangerData || !parkData || !dashboardStats) {
+  if (!rangerData || !selectedPark || !dashboardStats) {
     return null;
   }
 
@@ -186,15 +188,16 @@ export default function HomeScreen() {
                   'Park Selection',
                   'Choose a different park:',
                   [
-                    { text: 'Masai Mara National Reserve', onPress: () => console.log('Park switched to Masai Mara') },
-                    { text: 'Amboseli National Park', onPress: () => console.log('Park switched to Amboseli') },
-                    { text: 'Tsavo National Park', onPress: () => console.log('Park switched to Tsavo') },
+                    ...availableParks.map(park => ({
+                      text: park.name,
+                      onPress: () => setSelectedPark(park)
+                    })),
                     { text: 'Cancel', style: 'cancel' }
                   ]
                 );
               }}
             >
-              <ThemedText style={styles.parkName}>{parkData.name}</ThemedText>
+              <ThemedText style={styles.parkName}>{selectedPark.name}</ThemedText>
               <IconSymbol name="chevron.down" size={16} color="#666" />
             </TouchableOpacity>
           </View>
@@ -202,21 +205,21 @@ export default function HomeScreen() {
 
         {/* Park Details Card */}
         <View style={styles.parkDetailsCard}>
-          <ThemedText style={styles.parkDetailsTitle}>{parkData.name}</ThemedText>
-          <ThemedText style={styles.parkDescription}>{parkData.description}</ThemedText>
+          <ThemedText style={styles.parkDetailsTitle}>{selectedPark.name}</ThemedText>
+          <ThemedText style={styles.parkDescription}>{selectedPark.description}</ThemedText>
           <View style={styles.parkInfoGrid}>
             <View style={styles.parkInfoItem}>
               <IconSymbol name="location.fill" size={12} color="#666" />
-              <ThemedText style={styles.parkInfoText}>{parkData.location}</ThemedText>
+              <ThemedText style={styles.parkInfoText}>{selectedPark.location}</ThemedText>
             </View>
             <View style={styles.parkInfoItem}>
-              <ThemedText style={styles.parkInfoText}>Est. {parkData.established}</ThemedText>
+              <ThemedText style={styles.parkInfoText}>Est. {selectedPark.established}</ThemedText>
             </View>
             <View style={styles.parkInfoItem}>
-              <ThemedText style={styles.parkInfoText}>{parkData.area}</ThemedText>
+              <ThemedText style={styles.parkInfoText}>{selectedPark.area}</ThemedText>
             </View>
             <View style={styles.parkInfoItem}>
-              <ThemedText style={styles.parkInfoText}>{parkData.coordinates}</ThemedText>
+              <ThemedText style={styles.parkInfoText}>{selectedPark.coordinates}</ThemedText>
             </View>
           </View>
         </View>
@@ -354,7 +357,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <ThemedText style={styles.recentIncidentsSubtitle}>
-            Latest security and wildlife alerts in {parkData.name}
+            Latest security and wildlife alerts in {selectedPark.name}
           </ThemedText>
           
           {recentIncidents?.map((incident) => (
@@ -400,7 +403,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <ThemedText style={styles.recentLocationsSubtitle}>
-            Latest wildlife sightings and points of interest in {parkData.name}
+            Latest wildlife sightings and points of interest in {selectedPark.name}
         </ThemedText>
           
           {recentLocations?.map((location) => (
@@ -430,7 +433,7 @@ export default function HomeScreen() {
         <View style={styles.quickActionsSection}>
           <ThemedText style={styles.quickActionsTitle}>Quick Actions</ThemedText>
           <ThemedText style={styles.quickActionsSubtitle}>
-            Common ranger tasks for {parkData.name}
+            Common ranger tasks for {selectedPark.name}
         </ThemedText>
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity 

@@ -145,9 +145,10 @@ export class DataService {
     }
   }
 
-  async getDashboardStats(): Promise<ApiResponse<DashboardStats>> {
+  async getDashboardStats(parkId?: string): Promise<ApiResponse<DashboardStats>> {
     if (USE_MOCK_DATA) {
       await delay(API_DELAY);
+      // In a real app, you would filter by parkId
       return createMockResponse(mockDashboardStats);
     }
     
@@ -178,9 +179,10 @@ export class DataService {
     }
   }
 
-  async getEmergencyAlerts(): Promise<ApiResponse<EmergencyAlert[]>> {
+  async getEmergencyAlerts(parkId?: string): Promise<ApiResponse<EmergencyAlert[]>> {
     if (USE_MOCK_DATA) {
       await delay(API_DELAY);
+      // In a real app, you would filter by parkId
       return createMockResponse(mockEmergencyAlerts);
     }
     
@@ -189,9 +191,10 @@ export class DataService {
     throw new Error('Real API not implemented yet');
   }
 
-  async getRecentIncidents(): Promise<ApiResponse<Incident[]>> {
+  async getRecentIncidents(parkId?: string): Promise<ApiResponse<Incident[]>> {
     if (USE_MOCK_DATA) {
       await delay(API_DELAY);
+      // In a real app, you would filter by parkId
       return createMockResponse(mockRecentIncidents);
     }
     
@@ -223,9 +226,10 @@ export class DataService {
     }
   }
 
-  async getRecentLocations(): Promise<ApiResponse<Location[]>> {
+  async getRecentLocations(parkId?: string): Promise<ApiResponse<Location[]>> {
     if (USE_MOCK_DATA) {
       await delay(API_DELAY);
+      // In a real app, you would filter by parkId
       return createMockResponse(mockRecentLocations);
     }
     

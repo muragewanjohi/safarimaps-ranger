@@ -1,20 +1,34 @@
+import MapViewComponent, { MapLocation, MapRegion } from '@/components/MapView';
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { locationService } from '@/services/locationService';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    Alert,
+    Dimensions,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { height } = Dimensions.get('window');
 
 export default function MapScreen() {
   const [selectedFilter, setSelectedFilter] = useState('All Locations');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [mapMarkers, setMapMarkers] = useState<MapLocation[]>([]);
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [mapRegion, setMapRegion] = useState<MapRegion>({
+    latitude: -1.2921, // Masai Mara coordinates
+    longitude: 35.5739,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [showMap, setShowMap] = useState(true);
 
   const filterOptions = [
     'All Locations',
@@ -88,6 +102,43 @@ export default function MapScreen() {
     }
   ];
 
+  // Convert locations to map markers
+  const convertToMapMarkers = (locations: any[]): MapLocation[] => {
+    return locations.map(location => {
+      const [lat, lng] = location.coordinates.split(', ').map(Number);
+      return {
+        id: location.id.toString(),
+        latitude: lat,
+        longitude: lng,
+        title: location.title,
+        description: location.description,
+        type: location.category.toLowerCase() as 'wildlife' | 'incident' | 'park' | 'ranger'
+      };
+    });
+  };
+
+  // Initialize map markers
+  useEffect(() => {
+    setMapMarkers(convertToMapMarkers(locations));
+  }, []);
+
+  // Get current location
+  useEffect(() => {
+    const getLocation = async () => {
+      const location = await locationService.getCurrentLocation();
+      if (location) {
+        setCurrentLocation(location);
+        setMapRegion({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
+      }
+    };
+    getLocation();
+  }, []);
+
   const handleAddLocation = () => {
     router.push('/add-location');
   };
@@ -158,37 +209,34 @@ export default function MapScreen() {
           </View>
         )}
 
-        {/* Map Area */}
-        <View style={styles.mapContainer}>
-          <View style={styles.mapArea}>
-            <View style={styles.mapLabel}>
-              <ThemedText style={styles.mapLabelTitle}>Masai Mara National Reserve</ThemedText>
-              <ThemedText style={styles.mapLabelSubtitle}>Narok County, Kenya</ThemedText>
-            </View>
-            
-            {/* Map Markers */}
-            <View style={styles.mapMarkers}>
-              <View style={[styles.marker, { top: 20, left: 50 }]}>
-                <IconSymbol name="pawprint.fill" size={16} color="#fff" />
-              </View>
-              <View style={[styles.marker, { top: 80, left: 120 }]}>
-                <IconSymbol name="pawprint.fill" size={16} color="#fff" />
-              </View>
-              <View style={[styles.marker, styles.selectedMarker, { top: 140, left: 80 }]}>
-                <IconSymbol name="eye.fill" size={16} color="#fff" />
-              </View>
-              <View style={[styles.marker, { top: 200, left: 150 }]}>
-                <IconSymbol name="eye.fill" size={16} color="#fff" />
-              </View>
-              <View style={[styles.marker, { top: 260, left: 100 }]}>
-                <IconSymbol name="building.2.fill" size={16} color="#fff" />
-              </View>
-              <View style={[styles.marker, { top: 320, left: 60 }]}>
-                <IconSymbol name="plus" size={16} color="#fff" />
-              </View>
-            </View>
-          </View>
+        {/* Map Toggle */}
+        <View style={styles.mapToggleContainer}>
+          <TouchableOpacity 
+            style={[styles.mapToggleButton, showMap && styles.mapToggleButtonActive]}
+            onPress={() => setShowMap(!showMap)}
+          >
+            <IconSymbol name="map.fill" size={16} color={showMap ? "#fff" : "#666"} />
+            <ThemedText style={[styles.mapToggleText, showMap && styles.mapToggleTextActive]}>
+              {showMap ? 'Hide Map' : 'Show Map'}
+            </ThemedText>
+          </TouchableOpacity>
         </View>
+
+        {/* Google Maps */}
+        {showMap && (
+          <View style={styles.mapContainer}>
+            <MapViewComponent
+              initialRegion={mapRegion}
+              markers={mapMarkers}
+              onLocationSelect={(location) => {
+                Alert.alert(location.title || 'Location', location.description || 'No description available');
+              }}
+              onRegionChange={(region) => setMapRegion(region)}
+              showUserLocation={true}
+              mode="view"
+            />
+          </View>
+        )}
 
         {/* Locations List */}
         <View style={styles.locationsSection}>
@@ -388,8 +436,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#000',
   },
+  mapToggleContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  mapToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#f8f8f8',
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  mapToggleButtonActive: {
+    backgroundColor: '#2E7D32',
+    borderColor: '#2E7D32',
+  },
+  mapToggleText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  mapToggleTextActive: {
+    color: '#fff',
+  },
   mapContainer: {
-    height: 300,
+    height: height * 0.4, // 40% of screen height
     margin: 20,
     borderRadius: 12,
     overflow: 'hidden',
@@ -398,61 +477,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  mapArea: {
-    flex: 1,
-    backgroundColor: '#C8E6C9',
-    position: 'relative',
-  },
-  mapLabel: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  mapLabelTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  mapLabelSubtitle: {
-    fontSize: 12,
-    color: '#666',
-  },
-  mapMarkers: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  marker: {
-    position: 'absolute',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#4CAF50',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  selectedMarker: {
-    backgroundColor: '#FF9800',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
   },
   locationsSection: {
     backgroundColor: '#fff',

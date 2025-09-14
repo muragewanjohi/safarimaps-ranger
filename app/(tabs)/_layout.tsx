@@ -108,6 +108,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="park"
+        options={{
+          title: 'Park',
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol 
+              size={focused ? 26 : 24} 
+              name={focused ? "tree.fill" : "tree"} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

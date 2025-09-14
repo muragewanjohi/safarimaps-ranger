@@ -1,3 +1,4 @@
+import MapViewComponent from '@/components/MapView';
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import {
@@ -10,10 +11,12 @@ import {
     mockWildlifeSpecies
 } from '@/data/mockData';
 import { useAddLocation } from '@/hooks/useDataService';
+import { locationService } from '@/services/locationService';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Alert,
+    Dimensions,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -22,6 +25,8 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { height } = Dimensions.get('window');
 
 export default function AddLocationScreen() {
   const [selectedCategory, setSelectedCategory] = useState('Wildlife');
@@ -44,9 +49,24 @@ export default function AddLocationScreen() {
   const [contact, setContact] = useState('');
   const [bestTimeToVisit, setBestTimeToVisit] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [showMap, setShowMap] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   // Use data service hook
   const { addLocation, loading, error } = useAddLocation();
+
+  // Get current location on mount
+  useEffect(() => {
+    const getLocation = async () => {
+      const location = await locationService.getCurrentLocation();
+      if (location) {
+        setCurrentLocation(location);
+        setSelectedLocation(location);
+      }
+    };
+    getLocation();
+  }, []);
 
   const handleBack = () => {
     router.back();
@@ -116,12 +136,18 @@ export default function AddLocationScreen() {
     }
 
     // Prepare location data
+    const coordinates = selectedLocation 
+      ? `${selectedLocation.latitude.toFixed(6)}°, ${selectedLocation.longitude.toFixed(6)}°`
+      : 'Location not selected';
+
     const locationData = {
       category: selectedCategory as any,
       subcategory: selectedSubcategory,
       description,
       photos,
-      coordinates: '-1.5053°, 35.1442°', // Mock GPS coordinates
+      coordinates,
+      latitude: selectedLocation?.latitude,
+      longitude: selectedLocation?.longitude,
       ...(selectedCategory === 'Wildlife' && count && { count }),
       ...(selectedCategory === 'Attractions' && {
         attractionName,
@@ -483,12 +509,73 @@ export default function AddLocationScreen() {
           </View>
         </View>
 
-        {/* GPS Coordinates */}
-        <View style={styles.gpsSection}>
-          <View style={styles.gpsContainer}>
-            <IconSymbol name="location.fill" size={16} color="#FF9800" />
-            <ThemedText style={styles.gpsText}>GPS: -1.5053°, 35.1442° (Current Location)</ThemedText>
+        {/* Location Selection */}
+        <View style={styles.locationSection}>
+          <ThemedText style={styles.inputLabel}>Location</ThemedText>
+          <ThemedText style={styles.locationSubtitle}>
+            {selectedLocation 
+              ? `Selected: ${selectedLocation.latitude.toFixed(6)}°, ${selectedLocation.longitude.toFixed(6)}°`
+              : 'Use current location or select on map'
+            }
+          </ThemedText>
+          
+          <View style={styles.locationButtons}>
+            <TouchableOpacity 
+              style={styles.locationButton}
+              onPress={() => {
+                if (currentLocation) {
+                  setSelectedLocation(currentLocation);
+                } else {
+                  Alert.alert('Location Error', 'Current location not available. Please select on map.');
+                }
+              }}
+            >
+              <IconSymbol name="location.fill" size={16} color="#2E7D32" />
+              <ThemedText style={styles.locationButtonText}>Use Current</ThemedText>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.locationButton, showMap && styles.locationButtonActive]}
+              onPress={() => setShowMap(!showMap)}
+            >
+              <IconSymbol name="map.fill" size={16} color={showMap ? "#fff" : "#666"} />
+              <ThemedText style={[styles.locationButtonText, showMap && styles.locationButtonTextActive]}>
+                {showMap ? 'Hide Map' : 'Select on Map'}
+              </ThemedText>
+            </TouchableOpacity>
           </View>
+
+          {/* Map for location selection */}
+          {showMap && (
+            <View style={styles.mapContainer}>
+              <MapViewComponent
+                initialRegion={selectedLocation ? {
+                  latitude: selectedLocation.latitude,
+                  longitude: selectedLocation.longitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                } : {
+                  latitude: -1.2921,
+                  longitude: 35.5739,
+                  latitudeDelta: 0.0922,
+                  longitudeDelta: 0.0421,
+                }}
+                markers={selectedLocation ? [{
+                  id: 'selected',
+                  latitude: selectedLocation.latitude,
+                  longitude: selectedLocation.longitude,
+                  title: 'Selected Location',
+                  description: 'Tap to confirm this location',
+                  type: 'ranger'
+                }] : []}
+                onMapPress={(coordinate) => {
+                  setSelectedLocation(coordinate);
+                }}
+                mode="select"
+                showUserLocation={true}
+              />
+            </View>
+          )}
         </View>
 
         {/* Action Buttons */}
@@ -722,25 +809,55 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-  gpsSection: {
+  locationSection: {
     padding: 20,
     backgroundColor: '#fff',
     marginTop: 8,
   },
-  gpsContainer: {
+  locationSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 16,
+  },
+  locationButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  locationButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    justifyContent: 'center',
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: '#f8f8f8',
     borderWidth: 1,
     borderColor: '#e5e5e5',
     gap: 8,
   },
-  gpsText: {
+  locationButtonActive: {
+    backgroundColor: '#2E7D32',
+    borderColor: '#2E7D32',
+  },
+  locationButtonText: {
     fontSize: 14,
-    color: '#000',
+    color: '#666',
+    fontWeight: '500',
+  },
+  locationButtonTextActive: {
+    color: '#fff',
+  },
+  mapContainer: {
+    height: height * 0.3, // 30% of screen height
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   actionButtons: {
     flexDirection: 'row',

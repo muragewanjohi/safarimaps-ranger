@@ -1,8 +1,9 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { usePark } from '@/contexts/ParkContext';
 import { useIncidents } from '@/hooks/useIncidents';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -18,6 +19,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function ReportsScreen() {
   const [selectedFilter, setSelectedFilter] = useState('All Incidents');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  
+  // Get selected park from context
+  const { selectedPark } = usePark();
   
   // Load incidents from Supabase
   const { incidents, loading, error, refreshIncidents } = useIncidents();
@@ -127,6 +131,12 @@ export default function ReportsScreen() {
             />
             <ThemedText style={styles.titleBarText}>SafariMap GameWarden</ThemedText>
           </View>
+          {selectedPark && (
+            <View style={styles.parkIndicator}>
+              <IconSymbol name="location.fill" size={12} color="#fff" />
+              <ThemedText style={styles.parkIndicatorText}>{selectedPark.name}</ThemedText>
+            </View>
+          )}
         </View>
 
         {/* Header */}
@@ -404,6 +414,23 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  parkIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    alignSelf: 'center',
+  },
+  parkIndicatorText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '500',
   },
   header: {
     flexDirection: 'row',

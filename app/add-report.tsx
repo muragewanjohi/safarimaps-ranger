@@ -1,18 +1,19 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { usePark } from '@/contexts/ParkContext';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-  Alert,
-  Image,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Image,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,6 +24,9 @@ export default function AddReportScreen() {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showSeverityDropdown, setShowSeverityDropdown] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  
+  // Get selected park from context
+  const { selectedPark } = usePark();
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -217,7 +221,8 @@ export default function AddReportScreen() {
         photos: photoUrls,
         created_at: new Date().toISOString(),
         reported_by: user.id,
-        reported_by_name: 'Current User' // This would come from user profile
+        reported_by_name: 'Current User', // This would come from user profile
+        park_id: selectedPark?.id || null // Add park ID to the report
       };
 
       // Insert the report into Supabase
@@ -300,12 +305,20 @@ export default function AddReportScreen() {
           </View>
           <View style={styles.placeholder} />
         </View>
+        
+        {/* Park Indicator */}
+        {selectedPark && (
+          <View style={styles.parkIndicator}>
+            <IconSymbol name="location.fill" size={12} color="#2E7D32" />
+            <ThemedText style={styles.parkIndicatorText}>Reporting for: {selectedPark.name}</ThemedText>
+          </View>
+        )}
 
         {/* Header */}
         <View style={styles.header}>
           <ThemedText style={styles.title}>Report New Incident</ThemedText>
           <ThemedText style={styles.subtitle}>
-            Document security, wildlife, or infrastructure incidents in Masai Mara National Reserve
+            Document security, wildlife, or infrastructure incidents in {selectedPark?.name || 'the selected park'}
           </ThemedText>
         </View>
 
@@ -628,6 +641,22 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 28,
+  },
+  parkIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: '#e8f5e8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#d4edda',
+  },
+  parkIndicatorText: {
+    fontSize: 12,
+    color: '#2E7D32',
+    fontWeight: '500',
   },
   header: {
     padding: 20,
