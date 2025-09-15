@@ -10,23 +10,26 @@ import {
   useRecentIncidents,
   useRecentLocations
 } from '@/hooks/useDataService';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const insets = useSafeAreaInsets();
   const [isOffline] = useState(false); // Mock offline state
   const [pressedCard, setPressedCard] = useState<string | null>(null);
   const [pendingSyncItems] = useState(2); // Mock pending sync items
@@ -52,7 +55,7 @@ export default function HomeScreen() {
         break;
       case 'Update Location':
         // Navigate to add-location screen for location updates
-        router.push('/(tabs)/add-location');
+        router.push('/add-location');
         break;
       case 'Track Assets':
         // Navigate to explore screen to view tracked assets
@@ -73,11 +76,11 @@ export default function HomeScreen() {
         break;
       case 'Add Attraction':
         // Navigate to add-location with attraction pre-selected
-        router.push('/(tabs)/add-location');
+        router.push('/add-location');
         break;
       case 'Add Accommodation':
         // Navigate to add-location with accommodation pre-selected
-        router.push('/(tabs)/add-location');
+        router.push('/add-location');
         break;
       default:
         Alert.alert('Quick Action', `${action} feature coming soon!`);
@@ -102,6 +105,43 @@ export default function HomeScreen() {
         { text: 'OK', onPress: () => console.log(`Emergency response: ${action}`) }
       ]
     );
+  };
+
+  const handleQuickWildlifeCapture = async () => {
+    try {
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Camera permission is required to capture wildlife photos.');
+        return;
+      }
+
+      // Launch camera for quick capture
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        const photoName = `wildlife_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+        
+        // Navigate to add-location with the captured photo
+        router.push({
+          pathname: '/add-location',
+          params: {
+            category: 'Wildlife',
+            capturedPhoto: asset.uri,
+            photoName: photoName
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error capturing photo:', error);
+      Alert.alert('Error', 'Failed to capture photo. Please try again.');
+    }
   };
 
   // Show loading state
@@ -145,7 +185,13 @@ export default function HomeScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: '#f5f5f5' }]}>
       <StatusBar barStyle="dark-content" />
       
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: Platform.OS === 'android' ? 90 + insets.bottom : 110
+        }}
+      >
         {/* Title Bar */}
         <View style={styles.titleBar}>
           <View style={styles.titleBarContent}>
@@ -180,49 +226,115 @@ export default function HomeScreen() {
             </View>
           </View>
           <View style={styles.parkSelector}>
-            <ThemedText style={styles.currentParkLabel}>Current Park</ThemedText>
+            <View style={styles.parkSelectorHeader}>
+              <ThemedText style={styles.currentParkLabel}>Current Park</ThemedText>
+              <View style={styles.parkStatusIndicator}>
+                <View style={styles.activeIndicator} />
+                <ThemedText style={styles.activeText}>Active</ThemedText>
+                <ThemedText style={styles.parkCountText}>({availableParks.length} parks)</ThemedText>
+              </View>
+            </View>
             <TouchableOpacity 
               style={styles.parkDropdown}
               onPress={() => {
+                console.log('Available parks:', availableParks.length);
+                console.log('Available parks data:', JSON.stringify(availableParks, null, 2));
+                console.log('Selected park ID:', selectedPark.id);
+                
+                const otherParks = availableParks.filter(park => park.id !== selectedPark.id);
+                console.log('Other parks (filtered):', otherParks.length);
+                console.log('Other parks data:', JSON.stringify(otherParks, null, 2));
+                
+                // Create a simple park selection
+                if (otherParks.length === 0) {
+                  Alert.alert('No Other Parks', 'No other parks available to switch to.');
+                  return;
+                }
+                
+                // For now, let's try with just the first two parks to test
+                const parksToShow = otherParks.slice(0, 2);
+                const remainingCount = otherParks.length - 2;
+                
+                const alertButtons = [
+                  ...parksToShow.map(park => ({
+                    text: park.name,
+                    onPress: () => {
+                      console.log('Switching to park:', park.name);
+                      setSelectedPark(park);
+                      Alert.alert(
+                        'Park Switched',
+                        `Now operating in ${park.name}`,
+                        [{ text: 'OK' }]
+                      );
+                    }
+                  })),
+                  ...(remainingCount > 0 ? [{
+                    text: `+${remainingCount} more parks...`,
+                    onPress: () => {
+                      // For now, just show the first additional park
+                      if (otherParks[2]) {
+                        setSelectedPark(otherParks[2]);
+                        Alert.alert(
+                          'Park Switched',
+                          `Now operating in ${otherParks[2].name}`,
+                          [{ text: 'OK' }]
+                        );
+                      }
+                    }
+                  }] : []),
+                  { text: 'Cancel', style: 'cancel' as const }
+                ];
+                
+                console.log('Alert buttons created:', alertButtons.length);
+                console.log('Alert button texts:', alertButtons.map(btn => btn.text));
+                
                 Alert.alert(
-                  'Park Selection',
-                  'Choose a different park:',
-                  [
-                    ...availableParks.map(park => ({
-                      text: park.name,
-                      onPress: () => setSelectedPark(park)
-                    })),
-                    { text: 'Cancel', style: 'cancel' }
-                  ]
+                  'Switch Park',
+                  `Currently operating in ${selectedPark.name}. Choose a different park:`,
+                  alertButtons
                 );
               }}
             >
-              <ThemedText style={styles.parkName}>{selectedPark.name}</ThemedText>
-              <IconSymbol name="chevron.down" size={16} color="#666" />
+              <View style={styles.parkDropdownContent}>
+                <View style={styles.parkInfo}>
+                  <ThemedText style={styles.parkName}>{selectedPark.name}</ThemedText>
+                  <ThemedText style={styles.parkLocation}>{selectedPark.location}</ThemedText>
+                </View>
+                <IconSymbol name="chevron.down" size={16} color="#666" />
+              </View>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Park Details Card */}
-        <View style={styles.parkDetailsCard}>
-          <ThemedText style={styles.parkDetailsTitle}>{selectedPark.name}</ThemedText>
-          <ThemedText style={styles.parkDescription}>{selectedPark.description}</ThemedText>
-          <View style={styles.parkInfoGrid}>
-            <View style={styles.parkInfoItem}>
-              <IconSymbol name="location.fill" size={12} color="#666" />
-              <ThemedText style={styles.parkInfoText}>{selectedPark.location}</ThemedText>
+        <TouchableOpacity 
+          style={styles.parkDetailsCard}
+          onPress={() => router.push('/park')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.parkCardHeader}>
+            <View style={styles.parkCardContent}>
+              <ThemedText style={styles.parkDetailsTitle}>{selectedPark.name}</ThemedText>
+              <ThemedText style={styles.parkDescription}>{selectedPark.description}</ThemedText>
+              <View style={styles.parkInfoGrid}>
+                <View style={styles.parkInfoItem}>
+                  <IconSymbol name="location.fill" size={12} color="#666" />
+                  <ThemedText style={styles.parkInfoText}>{selectedPark.location}</ThemedText>
+                </View>
+                <View style={styles.parkInfoItem}>
+                  <ThemedText style={styles.parkInfoText}>Est. {selectedPark.established}</ThemedText>
+                </View>
+                <View style={styles.parkInfoItem}>
+                  <ThemedText style={styles.parkInfoText}>{selectedPark.area}</ThemedText>
+                </View>
+                <View style={styles.parkInfoItem}>
+                  <ThemedText style={styles.parkInfoText}>{selectedPark.coordinates}</ThemedText>
+                </View>
+              </View>
             </View>
-            <View style={styles.parkInfoItem}>
-              <ThemedText style={styles.parkInfoText}>Est. {selectedPark.established}</ThemedText>
-            </View>
-            <View style={styles.parkInfoItem}>
-              <ThemedText style={styles.parkInfoText}>{selectedPark.area}</ThemedText>
-            </View>
-            <View style={styles.parkInfoItem}>
-              <ThemedText style={styles.parkInfoText}>{selectedPark.coordinates}</ThemedText>
-            </View>
+            <IconSymbol name="chevron.right" size={16} color="#666" />
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Dashboard Stats - 6 Cards in 2x3 Grid */}
         <View style={styles.statsSection}>
@@ -526,21 +638,10 @@ export default function HomeScreen() {
       {/* Floating Action Button */}
       <TouchableOpacity 
         style={styles.fab}
-        onPress={() => {
-          Alert.alert(
-            'Quick Actions',
-            'Choose an action:',
-            [
-              { text: 'Add Location', onPress: () => router.push('/(tabs)/add-location') },
-              { text: 'Report Incident', onPress: () => router.push('/(tabs)/reports') },
-              { text: 'View Map', onPress: () => router.push('/(tabs)/explore') },
-              { text: 'Cancel', style: 'cancel' }
-            ]
-          );
-        }}
+        onPress={handleQuickWildlifeCapture}
         activeOpacity={0.8}
       >
-        <IconSymbol name="plus" size={24} color="#fff" />
+        <IconSymbol name="camera.fill" size={24} color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -622,20 +723,62 @@ const styles = StyleSheet.create({
   parkSelector: {
     width: '100%',
   },
+  parkSelectorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   currentParkLabel: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 4,
+    fontWeight: '500',
   },
-  parkDropdown: {
+  parkStatusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+  },
+  activeIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+  },
+  activeText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  parkCountText: {
+    fontSize: 10,
+    color: '#666',
+    marginLeft: 4,
+  },
+  parkDropdown: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  parkDropdownContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  parkInfo: {
+    flex: 1,
   },
   parkName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
+    marginBottom: 2,
+  },
+  parkLocation: {
+    fontSize: 12,
+    color: '#666',
   },
   rangerName: {
     fontSize: 20,
@@ -677,6 +820,14 @@ const styles = StyleSheet.create({
     elevation: 4,
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  parkCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  parkCardContent: {
+    flex: 1,
   },
   parkDetailsTitle: {
     fontSize: 20,
@@ -1137,7 +1288,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 90,
+    bottom: Platform.OS === 'android' ? 110 : 100,
     right: 20,
     width: 56,
     height: 56,

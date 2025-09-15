@@ -52,6 +52,14 @@ export class ParkService {
   static async getParks(): Promise<Park[]> {
     try {
       console.log('Fetching parks from database...');
+      console.log('Supabase client status:', supabase ? 'Available' : 'NULL');
+      
+      // Check if Supabase client is available
+      if (!supabase) {
+        console.warn('Supabase client is not available, returning empty array');
+        return [];
+      }
+      
       const { data, error } = await supabase
         .from('parks')
         .select('*')
@@ -63,6 +71,7 @@ export class ParkService {
       }
       
       console.log('Parks fetched successfully:', data?.length || 0, 'parks');
+      console.log('Raw parks data:', JSON.stringify(data, null, 2));
       return data || [];
     } catch (error) {
       console.error('Error fetching parks:', error);

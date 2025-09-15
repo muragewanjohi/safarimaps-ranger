@@ -4,6 +4,7 @@ import { Colors } from '@/constants/Colors';
 import { usePark } from '@/contexts/ParkContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useParkDetails, useParkEntries } from '@/hooks/useParkData';
+import { parkService } from '@/services/parkService';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';

@@ -1,10 +1,12 @@
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePark } from '@/contexts/ParkContext';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
+    Platform,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -12,10 +14,12 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const { selectedPark, setSelectedPark, availableParks } = usePark();
+  const insets = useSafeAreaInsets();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [locationSharing, setLocationSharing] = useState(true);
   const [offlineMode, setOfflineMode] = useState(true);
@@ -40,12 +44,18 @@ export default function ProfileScreen() {
     avatar: "GU"
   };
 
-  const parkData = {
-    name: "Masai Mara National Reserve",
-    description: "World-renowned safari destination in Kenya, famous for the Great Migration",
-    location: "Narok County, Kenya",
-    area: "1,510 km²",
-    established: "1961"
+  const parkData = selectedPark ? {
+    name: selectedPark.name,
+    description: selectedPark.description,
+    location: selectedPark.location,
+    area: selectedPark.area,
+    established: selectedPark.established
+  } : {
+    name: "No Park Selected",
+    description: "Please select a park to view details",
+    location: "N/A",
+    area: "N/A",
+    established: "N/A"
   };
 
   const impactStats = {
@@ -155,7 +165,13 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: Platform.OS === 'android' ? 90 + insets.bottom : 110
+        }}
+      >
         {/* Title Bar */}
         <View style={styles.titleBar}>
           <ThemedText style={styles.titleBarText}>SafariMap GameWarden</ThemedText>
@@ -171,7 +187,11 @@ export default function ProfileScreen() {
         <View style={styles.assignedParkCard}>
           <View style={styles.assignedParkHeader}>
             <IconSymbol name="exclamationmark.triangle.fill" size={20} color="#ff9500" />
-            <ThemedText style={styles.assignedParkTitle}>Assigned Park</ThemedText>
+            <ThemedText style={styles.assignedParkTitle}>Current Park</ThemedText>
+            <View style={styles.parkStatusIndicator}>
+              <View style={styles.activeIndicator} />
+              <ThemedText style={styles.activeText}>Active</ThemedText>
+            </View>
           </View>
           <ThemedText style={styles.assignedParkSubtitle}>Your current conservation assignment</ThemedText>
           
@@ -191,6 +211,88 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
+        </View>
+
+        {/* Park Switching Section */}
+        <View style={styles.parkSwitchingCard}>
+          <View style={styles.parkSwitchingHeader}>
+            <IconSymbol name="arrow.triangle.2.circlepath" size={20} color="#2E7D32" />
+            <ThemedText style={styles.parkSwitchingTitle}>Switch Park</ThemedText>
+          </View>
+          <ThemedText style={styles.parkSwitchingSubtitle}>Change your operating park assignment</ThemedText>
+          
+          <TouchableOpacity 
+            style={styles.switchParkButton}
+            onPress={() => {
+              console.log('Profile - Available parks:', availableParks.length);
+              console.log('Profile - Available parks data:', JSON.stringify(availableParks, null, 2));
+              console.log('Profile - Selected park ID:', selectedPark?.id);
+              
+              const otherParks = availableParks.filter(park => park.id !== selectedPark?.id);
+              console.log('Profile - Other parks (filtered):', otherParks.length);
+              console.log('Profile - Other parks data:', JSON.stringify(otherParks, null, 2));
+              
+              // Create a simple park selection
+              if (otherParks.length === 0) {
+                Alert.alert('No Other Parks', 'No other parks available to switch to.');
+                return;
+              }
+              
+              // For now, let's try with just the first two parks to test
+              const parksToShow = otherParks.slice(0, 2);
+              const remainingCount = otherParks.length - 2;
+              
+              const alertButtons = [
+                ...parksToShow.map(park => ({
+                  text: park.name,
+                  onPress: () => {
+                    console.log('Profile - Switching to park:', park.name);
+                    setSelectedPark(park);
+                    Alert.alert(
+                      'Park Switched',
+                      `Now operating in ${park.name}`,
+                      [{ text: 'OK' }]
+                    );
+                  }
+                })),
+                ...(remainingCount > 0 ? [{
+                  text: `+${remainingCount} more parks...`,
+                  onPress: () => {
+                    // For now, just show the first additional park
+                    if (otherParks[2]) {
+                      setSelectedPark(otherParks[2]);
+                      Alert.alert(
+                        'Park Switched',
+                        `Now operating in ${otherParks[2].name}`,
+                        [{ text: 'OK' }]
+                      );
+                    }
+                  }
+                }] : []),
+                { text: 'Cancel', style: 'cancel' as const }
+              ];
+              
+              console.log('Profile - Alert buttons created:', alertButtons.length);
+              console.log('Profile - Alert button texts:', alertButtons.map(btn => btn.text));
+              
+              Alert.alert(
+                'Switch Park',
+                `Currently operating in ${selectedPark?.name || 'No Park'}. Choose a different park:`,
+                alertButtons
+              );
+            }}
+          >
+            <View style={styles.switchParkContent}>
+              <IconSymbol name="arrow.triangle.2.circlepath" size={20} color="#2E7D32" />
+              <View style={styles.switchParkText}>
+                <ThemedText style={styles.switchParkTitle}>Switch to Another Park</ThemedText>
+                <ThemedText style={styles.switchParkSubtitle}>
+                  {Math.max(0, availableParks.length - 1)} other parks available
+                </ThemedText>
+              </View>
+              <IconSymbol name="chevron.right" size={16} color="#666" />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* User Profile Section */}
@@ -433,13 +535,29 @@ const styles = StyleSheet.create({
   assignedParkHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
     marginBottom: 4,
   },
   assignedParkTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000',
+  },
+  parkStatusIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  activeIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+  },
+  activeText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '600',
   },
   assignedParkSubtitle: {
     fontSize: 12,
@@ -477,6 +595,59 @@ const styles = StyleSheet.create({
   },
   parkInfoText: {
     fontSize: 11,
+    color: '#666',
+  },
+  parkSwitchingCard: {
+    backgroundColor: '#fff',
+    margin: 20,
+    marginTop: 0,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  parkSwitchingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  parkSwitchingTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  parkSwitchingSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 16,
+  },
+  switchParkButton: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  switchParkContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  switchParkText: {
+    flex: 1,
+  },
+  switchParkTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+  },
+  switchParkSubtitle: {
+    fontSize: 12,
     color: '#666',
   },
   userProfileCard: {

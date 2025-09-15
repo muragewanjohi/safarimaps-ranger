@@ -1,6 +1,7 @@
 import MapViewComponent from '@/components/MapView';
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { usePark } from '@/contexts/ParkContext';
 import {
     mockAttractionCategories,
     mockBestTimeOptions,
@@ -12,11 +13,14 @@ import {
 } from '@/data/mockData';
 import { useAddLocation } from '@/hooks/useDataService';
 import { locationService } from '@/services/locationService';
-import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     Alert,
     Dimensions,
+    Image,
+    Platform,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -24,12 +28,20 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height } = Dimensions.get('window');
 
 export default function AddLocationScreen() {
-  const [selectedCategory, setSelectedCategory] = useState('Wildlife');
+  const { category, capturedPhoto, photoName } = useLocalSearchParams<{ 
+    category?: string; 
+    capturedPhoto?: string; 
+    photoName?: string; 
+  }>();
+  const insets = useSafeAreaInsets();
+  const { selectedPark } = usePark();
+  
+  const [selectedCategory, setSelectedCategory] = useState(category || 'Wildlife');
   const [selectedSpecies, setSelectedSpecies] = useState('');
   const [selectedAttraction, setSelectedAttraction] = useState('');
   const [selectedHotel, setSelectedHotel] = useState('');
@@ -48,7 +60,7 @@ export default function AddLocationScreen() {
   const [hotelName, setHotelName] = useState('');
   const [contact, setContact] = useState('');
   const [bestTimeToVisit, setBestTimeToVisit] = useState('');
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<string[]>(capturedPhoto ? [capturedPhoto] : []);
   const [selectedLocation, setSelectedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -72,14 +84,78 @@ export default function AddLocationScreen() {
     router.back();
   };
 
-  const handleAddPhoto = () => {
+  const handleAddPhoto = async () => {
     if (photos.length >= 3) {
       Alert.alert('Photo Limit', 'You can only add up to 3 photos.');
       return;
     }
-    Alert.alert('Add Photo', 'Camera/Gallery integration coming soon!');
-    // Mock adding a photo
-    setPhotos([...photos, `photo_${photos.length + 1}.jpg`]);
+
+    try {
+      // Request camera permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        return;
+      }
+
+      // Show action sheet for camera or gallery
+      Alert.alert(
+        'Add Photo',
+        'Choose how you want to add a photo:',
+        [
+          {
+            text: 'Camera',
+            onPress: async () => {
+              try {
+                const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+                if (cameraStatus !== 'granted') {
+                  Alert.alert('Permission Required', 'Camera permission is required to take photos.');
+                  return;
+                }
+
+                const result = await ImagePicker.launchCameraAsync({
+                  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                  allowsEditing: true,
+                  aspect: [4, 3],
+                  quality: 0.8,
+                });
+
+                if (!result.canceled && result.assets[0]) {
+                  setPhotos([...photos, result.assets[0].uri]);
+                }
+              } catch (error) {
+                console.error('Error taking photo:', error);
+                Alert.alert('Error', 'Failed to take photo. Please try again.');
+              }
+            }
+          },
+          {
+            text: 'Gallery',
+            onPress: async () => {
+              try {
+                const result = await ImagePicker.launchImageLibraryAsync({
+                  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                  allowsEditing: true,
+                  aspect: [4, 3],
+                  quality: 0.8,
+                });
+
+                if (!result.canceled && result.assets[0]) {
+                  setPhotos([...photos, result.assets[0].uri]);
+                }
+              } catch (error) {
+                console.error('Error picking image:', error);
+                Alert.alert('Error', 'Failed to pick image. Please try again.');
+              }
+            }
+          },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+    } catch (error) {
+      console.error('Error requesting permissions:', error);
+      Alert.alert('Error', 'Failed to request permissions. Please try again.');
+    }
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -111,6 +187,13 @@ export default function AddLocationScreen() {
   };
 
   const handleAddLocation = async () => {
+    console.log('handleAddLocation called');
+    console.log('selectedCategory:', selectedCategory);
+    console.log('selectedSpecies:', selectedSpecies);
+    console.log('description:', description);
+    console.log('count:', count);
+    console.log('selectedLocation:', selectedLocation);
+    
     let selectedSubcategory = '';
     switch (selectedCategory) {
       case 'Wildlife':
@@ -130,8 +213,25 @@ export default function AddLocationScreen() {
         break;
     }
 
+    console.log('selectedSubcategory:', selectedSubcategory);
+
     if (!selectedSubcategory) {
-      Alert.alert('Missing Information', 'Please select a category option.');
+      Alert.alert('Missing Information', `Please select a ${selectedCategory.toLowerCase()} option.`);
+      return;
+    }
+
+    if (!description.trim()) {
+      Alert.alert('Missing Information', 'Please enter a description.');
+      return;
+    }
+
+    if (selectedCategory === 'Wildlife' && (!count || count <= 0)) {
+      Alert.alert('Missing Information', 'Please enter a valid count for wildlife sighting.');
+      return;
+    }
+
+    if (!selectedLocation) {
+      Alert.alert('Missing Information', 'Please select a location using "Use Current" or "Select on Map".');
       return;
     }
 
@@ -162,19 +262,29 @@ export default function AddLocationScreen() {
       })
     };
 
-    // Add location using data service
-    const result = await addLocation(locationData);
-    
-    if (result) {
-      Alert.alert(
-        'Location Added',
-        `Successfully added ${selectedCategory}: ${selectedSubcategory}`,
-        [
-          { text: 'OK', onPress: () => router.back() }
-        ]
-      );
-    } else if (error) {
-      Alert.alert('Error', error);
+    try {
+      console.log('Saving location data:', locationData);
+      
+      // Add location using data service
+      const result = await addLocation(locationData, selectedPark?.id);
+      
+      console.log('Save result:', result);
+      console.log('Error state:', error);
+      
+      if (result) {
+        Alert.alert(
+          'Location Added',
+          `Successfully added ${selectedCategory}: ${selectedSubcategory}`,
+          [
+            { text: 'OK', onPress: () => router.back() }
+          ]
+        );
+      } else {
+        Alert.alert('Error', error || 'Failed to save location. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error saving location:', err);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     }
   };
 
@@ -278,7 +388,13 @@ export default function AddLocationScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: Platform.OS === 'android' ? 120 + insets.bottom : 140
+        }}
+      >
         {/* Title Bar */}
         <View style={styles.titleBar}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -290,10 +406,23 @@ export default function AddLocationScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText style={styles.title}>Add New Location</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Add a new point of interest to Masai Mara National Reserve using your current GPS coordinates.
+          <ThemedText style={styles.title}>
+            {category === 'Wildlife' ? 'Add Wildlife Sighting' : 'Add New Location'}
           </ThemedText>
+          <ThemedText style={styles.subtitle}>
+            {category === 'Wildlife' 
+              ? capturedPhoto 
+                ? 'Photo captured successfully! Now add the species details and other information.'
+                : 'Document a wildlife sighting in Masai Mara National Reserve. Start by taking photos, then add details.'
+              : 'Add a new point of interest to Masai Mara National Reserve using your current GPS coordinates.'
+            }
+          </ThemedText>
+          {capturedPhoto && (
+            <View style={styles.successIndicator}>
+              <IconSymbol name="checkmark.circle.fill" size={16} color="#4CAF50" />
+              <ThemedText style={styles.successText}>Photo captured and ready</ThemedText>
+            </View>
+          )}
         </View>
 
         {/* Category Selection */}
@@ -481,16 +610,29 @@ export default function AddLocationScreen() {
 
         {/* Photo Upload Section */}
         <View style={styles.photoSection}>
-          <ThemedText style={styles.inputLabel}>Photos (Optional)</ThemedText>
-          <ThemedText style={styles.photoSubtitle}>Add up to 3 photos to document the location</ThemedText>
+          <ThemedText style={styles.inputLabel}>
+            {category === 'Wildlife' ? 'Photos (Required)' : 'Photos (Optional)'}
+          </ThemedText>
+          <ThemedText style={styles.photoSubtitle}>
+            {category === 'Wildlife' 
+              ? capturedPhoto 
+                ? 'Great! Photo captured. You can add up to 2 more photos to document the species.'
+                : 'Start by taking photos of the wildlife sighting. Add up to 3 photos to document the species.'
+              : 'Add up to 3 photos to document the location'
+            }
+          </ThemedText>
           
           <View style={styles.photoContainer}>
             {photos.map((photo, index) => (
               <View key={index} style={styles.photoItem}>
-                <View style={styles.photoPlaceholder}>
-                  <IconSymbol name="camera.fill" size={24} color="#666" />
-                  <ThemedText style={styles.photoText}>{photo}</ThemedText>
-                </View>
+                {photo.startsWith('file://') || photo.startsWith('content://') ? (
+                  <Image source={{ uri: photo }} style={styles.photoImage} />
+                ) : (
+                  <View style={styles.photoPlaceholder}>
+                    <IconSymbol name="camera.fill" size={24} color="#666" />
+                    <ThemedText style={styles.photoText}>{photo}</ThemedText>
+                  </View>
+                )}
                 <TouchableOpacity 
                   style={styles.removePhotoButton}
                   onPress={() => handleRemovePhoto(index)}
@@ -583,9 +725,18 @@ export default function AddLocationScreen() {
           <TouchableOpacity style={styles.cancelButton} onPress={handleBack}>
             <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.addButton} onPress={handleAddLocation}>
+          <TouchableOpacity 
+            style={[styles.addButton, loading && styles.addButtonDisabled]} 
+            onPress={handleAddLocation}
+            disabled={loading}
+          >
             <IconSymbol name="camera.fill" size={16} color="#fff" />
-            <ThemedText style={styles.addButtonText}>Add Location</ThemedText>
+            <ThemedText style={styles.addButtonText}>
+              {loading 
+                ? 'Saving...' 
+                : (category === 'Wildlife' ? 'Add Wildlife Sighting' : 'Add Location')
+              }
+            </ThemedText>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -641,6 +792,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  successIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#E8F5E8',
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  successText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '600',
+    marginLeft: 4,
   },
   categorySection: {
     padding: 20,
@@ -774,6 +941,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 8,
   },
+  photoImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
   photoText: {
     fontSize: 10,
     color: '#666',
@@ -888,6 +1060,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#2E7D32',
     gap: 8,
+  },
+  addButtonDisabled: {
+    backgroundColor: '#ccc',
+    opacity: 0.6,
   },
   addButtonText: {
     fontSize: 16,

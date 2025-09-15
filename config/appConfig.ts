@@ -1,7 +1,7 @@
 // App Configuration
 export const AppConfig = {
   // Data Source Configuration
-  USE_MOCK_DATA: false, // Switch to Supabase
+  USE_MOCK_DATA: false, // Use Supabase for all data operations
   USE_SUPABASE: true,
   
   // Supabase Configuration

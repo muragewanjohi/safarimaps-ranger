@@ -86,19 +86,26 @@ export function useAddLocation() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const addLocation = useCallback(async (locationData: any) => {
+  const addLocation = useCallback(async (locationData: any, parkId?: string) => {
     try {
+      console.log('useAddLocation: Starting addLocation with data:', locationData);
+      console.log('useAddLocation: Park ID:', parkId);
       setLoading(true);
       setError(null);
-      const response = await dataService.addLocation(locationData);
+      const response = await dataService.addLocation(locationData, parkId);
+      
+      console.log('useAddLocation: Received response:', response);
       
       if (response.success) {
+        console.log('useAddLocation: Success, returning data:', response.data);
         return response.data;
       } else {
+        console.log('useAddLocation: Failed, error:', response.error);
         setError(response.error || 'Failed to add location');
         return null;
       }
     } catch (err) {
+      console.error('useAddLocation: Exception caught:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       return null;
     } finally {

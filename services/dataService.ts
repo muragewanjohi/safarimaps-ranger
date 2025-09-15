@@ -70,12 +70,16 @@ export class DataService {
 
   // Dashboard Data
   async getRangerData(): Promise<ApiResponse<Ranger>> {
+    console.log('getRangerData called with USE_MOCK_DATA:', USE_MOCK_DATA);
+    
     if (USE_MOCK_DATA) {
+      console.log('Using mock data for ranger data');
       await delay(API_DELAY);
       return createMockResponse(mockRanger);
     }
     
     try {
+      console.log('Using Supabase for ranger data');
       // Get current user from Supabase auth
       const { data: { user } } = await supabase!.auth.getUser();
       if (!user) {
@@ -146,33 +150,44 @@ export class DataService {
   }
 
   async getDashboardStats(parkId?: string): Promise<ApiResponse<DashboardStats>> {
+    console.log('getDashboardStats called with USE_MOCK_DATA:', USE_MOCK_DATA, 'parkId:', parkId);
+    
     if (USE_MOCK_DATA) {
+      console.log('Using mock data for dashboard stats');
       await delay(API_DELAY);
       // In a real app, you would filter by parkId
       return createMockResponse(mockDashboardStats);
     }
     
     try {
-      // Get counts from various tables
-      const [incidentsResult, locationsResult, reportsResult] = await Promise.all([
-        supabase!.from('incidents').select('id', { count: 'exact' }),
+      console.log('Using Supabase for dashboard stats');
+      // Get counts from various tables with proper filtering
+      const [incidentsResult, locationsResult, reportsResult, wildlifeResult, hotelsResult, rangersResult] = await Promise.all([
+        supabase!.from('incidents').select('id', { count: 'exact' }).eq('status', 'Reported'),
         supabase!.from('locations').select('id', { count: 'exact' }),
-        supabase!.from('reports').select('id', { count: 'exact' })
+        supabase!.from('reports').select('id', { count: 'exact' }),
+        supabase!.from('locations').select('id', { count: 'exact' }).eq('category', 'Wildlife'),
+        supabase!.from('locations').select('id', { count: 'exact' }).eq('category', 'Hotel'),
+        supabase!.from('profiles').select('id', { count: 'exact' }).eq('role', 'Ranger').eq('is_active', true)
       ]);
 
       const activeIncidents = incidentsResult.count || 0;
-      const wildlifeTracked = locationsResult.count || 0;
+      const totalLocations = locationsResult.count || 0;
       const reportsToday = reportsResult.count || 0;
+      const wildlifeTracked = wildlifeResult.count || 0;
+      const hotelsLodges = hotelsResult.count || 0;
+      const rangersActive = rangersResult.count || 1; // Default to 1 if no rangers found
 
       const stats: DashboardStats = {
         activeIncidents,
         wildlifeTracked,
-        touristLocations: wildlifeTracked, // Using locations as tourist locations for now
-        rangersActive: 1, // Default to 1 for current user
-        hotelsLodges: 0, // Would need to count from locations where category = 'Hotel'
+        touristLocations: totalLocations, // All locations can be tourist locations
+        rangersActive,
+        hotelsLodges,
         reportsToday
       };
 
+      console.log('Dashboard stats from Supabase:', stats);
       return createMockResponse(stats);
     } catch (error) {
       return { success: false, data: null as any, error: 'Failed to fetch dashboard stats' };
@@ -180,25 +195,58 @@ export class DataService {
   }
 
   async getEmergencyAlerts(parkId?: string): Promise<ApiResponse<EmergencyAlert[]>> {
+    console.log('getEmergencyAlerts called with USE_MOCK_DATA:', USE_MOCK_DATA, 'parkId:', parkId);
+    
     if (USE_MOCK_DATA) {
+      console.log('Using mock data for emergency alerts');
       await delay(API_DELAY);
       // In a real app, you would filter by parkId
       return createMockResponse(mockEmergencyAlerts);
     }
     
-    // Real API call would go here
-    // return this.apiCall<EmergencyAlert[]>('/alerts/emergency');
-    throw new Error('Real API not implemented yet');
+    try {
+      console.log('Using Supabase for emergency alerts');
+      // Get emergency alerts from incidents table where severity is Critical or High
+      const { data: incidents, error } = await supabase!
+        .from('incidents')
+        .select('*')
+        .in('severity', ['Critical', 'High'])
+        .eq('status', 'Reported')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        return { success: false, data: null as any, error: 'Failed to fetch emergency alerts' };
+      }
+
+      const alertsData: EmergencyAlert[] = (incidents || []).map(incident => ({
+        id: incident.id,
+        type: incident.type,
+        description: incident.description || '',
+        location: incident.location || '',
+        timeAgo: this.getTimeAgo(incident.created_at),
+        severity: incident.severity,
+        urgent: incident.severity === 'Critical'
+      }));
+
+      return createMockResponse(alertsData);
+    } catch (error) {
+      return { success: false, data: null as any, error: 'Failed to fetch emergency alerts' };
+    }
   }
 
   async getRecentIncidents(parkId?: string): Promise<ApiResponse<Incident[]>> {
+    console.log('getRecentIncidents called with USE_MOCK_DATA:', USE_MOCK_DATA, 'parkId:', parkId);
+    
     if (USE_MOCK_DATA) {
+      console.log('Using mock data for recent incidents');
       await delay(API_DELAY);
       // In a real app, you would filter by parkId
       return createMockResponse(mockRecentIncidents);
     }
     
     try {
+      console.log('Using Supabase for recent incidents');
       // Get recent incidents from incidents table
       const { data: incidents, error } = await supabase!
         .from('incidents')
@@ -212,7 +260,7 @@ export class DataService {
 
       const incidentsData: Incident[] = (incidents || []).map(incident => ({
         id: incident.id,
-        type: incident.category,
+        type: incident.type,
         description: incident.description || '',
         location: incident.location || '',
         timeAgo: this.getTimeAgo(incident.created_at),
@@ -227,13 +275,17 @@ export class DataService {
   }
 
   async getRecentLocations(parkId?: string): Promise<ApiResponse<Location[]>> {
+    console.log('getRecentLocations called with USE_MOCK_DATA:', USE_MOCK_DATA, 'parkId:', parkId);
+    
     if (USE_MOCK_DATA) {
+      console.log('Using mock data for recent locations');
       await delay(API_DELAY);
       // In a real app, you would filter by parkId
       return createMockResponse(mockRecentLocations);
     }
     
     try {
+      console.log('Using Supabase for recent locations');
       // Get recent locations from locations table
       const { data: locations, error } = await supabase!
         .from('locations')
@@ -247,11 +299,14 @@ export class DataService {
 
       const locationsData: Location[] = (locations || []).map(location => ({
         id: location.id,
-        type: location.category,
-        location: location.coordinates,
+        title: location.name,
+        category: location.category,
+        description: location.description || '',
+        coordinates: location.coordinates,
+        reportedBy: 'Ranger', // Default since we don't have user names in the query
         timeAgo: this.getTimeAgo(location.created_at),
-        reportedBy: location.reported_by,
-        count: location.count
+        icon: this.getIconForCategory(location.category),
+        iconColor: this.getColorForCategory(location.category)
       }));
 
       return createMockResponse(locationsData);
@@ -311,8 +366,12 @@ export class DataService {
   }
 
   // Location Management
-  async addLocation(location: NewLocation): Promise<ApiResponse<Location>> {
+  async addLocation(location: NewLocation, parkId?: string): Promise<ApiResponse<Location>> {
+    console.log('DataService.addLocation called with USE_MOCK_DATA:', USE_MOCK_DATA);
+    console.log('Location data received:', location);
+    
     if (USE_MOCK_DATA) {
+      console.log('Using mock data for addLocation');
       await delay(API_DELAY);
       // Create a mock location from the new location data
       const newLocation: Location = {
@@ -334,12 +393,145 @@ export class DataService {
         ...(location.photos.length > 0 && { photos: location.photos })
       };
       
-      return createMockResponse(newLocation);
+      console.log('Created mock location:', newLocation);
+      const response = createMockResponse(newLocation);
+      console.log('Mock response:', response);
+      return response;
     }
     
-    // Real API call would go here
-    // return this.apiCall<Location>('/locations', 'POST', location);
-    throw new Error('Real API not implemented yet');
+    try {
+      console.log('Using Supabase for addLocation');
+      
+      // Get current user
+      const { data: { user }, error: userError } = await supabase!.auth.getUser();
+      if (userError || !user) {
+        console.error('Error getting user:', userError);
+        return { success: false, data: null as any, error: 'User not authenticated' };
+      }
+
+      console.log('Current user ID:', user.id);
+      console.log('Current user email:', user.email);
+
+      // Check user's profile and role
+      const { data: profile, error: profileError } = await supabase!
+        .from('profiles')
+        .select('id, name, role, ranger_id, team')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error getting user profile:', profileError);
+        return { success: false, data: null as any, error: 'User profile not found' };
+      }
+
+      console.log('User profile:', profile);
+      console.log('User role:', profile.role);
+
+      // Check if user has permission to insert locations
+      if (!['Ranger', 'Admin', 'Park_Manager'].includes(profile.role)) {
+        console.error('User does not have permission to insert locations. Role:', profile.role);
+        return { success: false, data: null as any, error: `User role '${profile.role}' does not have permission to add locations` };
+      }
+
+      // Use provided park ID or get the first park as default
+      let targetParkId = parkId;
+      
+      if (!targetParkId) {
+        const { data: parks, error: parksError } = await supabase!
+          .from('parks')
+          .select('id')
+          .limit(1);
+        
+        if (parksError || !parks || parks.length === 0) {
+          console.error('Error getting parks:', parksError);
+          return { success: false, data: null as any, error: 'No parks available' };
+        }
+
+        targetParkId = parks[0].id;
+      }
+      
+      console.log('Using park ID:', targetParkId);
+
+      // Map category to database enum
+      const categoryMap: { [key: string]: string } = {
+        'Wildlife': 'Wildlife',
+        'Attractions': 'Attraction',
+        'Hotels': 'Hotel',
+        'Dining': 'Dining',
+        'Viewpoints': 'Viewpoint'
+      };
+
+      const dbCategory = categoryMap[location.category] || 'Wildlife';
+
+      // Try to insert with just the essential fields first
+      console.log('Attempting to insert location with minimal fields...');
+      
+      const insertData: any = {
+        park_id: targetParkId,
+        category: dbCategory,
+        description: location.description,
+        coordinates: location.coordinates
+      };
+
+      console.log('Insert data:', insertData);
+
+      const { data: newLocation, error: insertError } = await supabase!
+        .from('locations')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error inserting location:', insertError);
+        return { success: false, data: null as any, error: insertError.message };
+      }
+
+      console.log('Location inserted successfully:', newLocation);
+
+      // If there are photos, insert them into location_photos table
+      if (location.photos && location.photos.length > 0) {
+        const photoInserts = location.photos.map(photoUrl => ({
+          location_id: newLocation.id,
+          photo_url: photoUrl,
+          taken_by: user.id
+        }));
+
+        const { error: photosError } = await supabase!
+          .from('location_photos')
+          .insert(photoInserts);
+
+        if (photosError) {
+          console.error('Error inserting photos:', photosError);
+          // Don't fail the whole operation for photo errors
+        } else {
+          console.log('Photos inserted successfully');
+        }
+      }
+
+      // Convert database location to app Location format
+      const appLocation: Location = {
+        id: newLocation.id,
+        title: location.attractionName || location.hotelName || location.subcategory || 'Wildlife Sighting',
+        category: newLocation.category,
+        description: newLocation.description,
+        coordinates: newLocation.coordinates,
+        reportedBy: user.email || 'Unknown User',
+        icon: this.getIconForCategory(location.category),
+        iconColor: this.getColorForCategory(location.category),
+        timeAgo: 'Just now',
+        ...(location.operatingHours && { operatingHours: location.operatingHours }),
+        ...(location.contact && { contact: location.contact }),
+        ...(location.count && { count: location.count }),
+        ...(location.photos.length > 0 && { photos: location.photos })
+      };
+
+      console.log('Converted to app location:', appLocation);
+      return { success: true, data: appLocation, message: 'Location added successfully' };
+
+    } catch (error) {
+      console.error('Unexpected error in addLocation:', error);
+      return { success: false, data: null as any, error: 'An unexpected error occurred' };
+    }
   }
 
   // Helper methods
