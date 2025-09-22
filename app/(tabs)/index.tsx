@@ -4,29 +4,31 @@ import { Colors } from '@/constants/Colors';
 import { usePark } from '@/contexts/ParkContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import {
-  useDashboardStats,
-  useEmergencyAlerts,
-  useRangerData,
-  useRecentIncidents,
-  useRecentLocations
+    useDashboardStats,
+    useEmergencyAlerts,
+    useRangerData,
+    useRecentIncidents,
+    useRecentLocations
 } from '@/hooks/useDataService';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
+  console.log('HomeScreen rendering...');
+  
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
@@ -46,6 +48,15 @@ export default function HomeScreen() {
 
   // Show loading state if any critical data is loading
   const isLoading = rangerLoading || parkLoading || statsLoading;
+  
+  console.log('HomeScreen loading states:', {
+    rangerLoading,
+    parkLoading,
+    statsLoading,
+    isLoading,
+    selectedPark: selectedPark?.name,
+    availableParks: availableParks?.length
+  });
 
   const handleQuickAction = (action: string) => {
     switch (action) {

@@ -9,8 +9,10 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const segments = useSegments();
+
+  console.log('AuthGuard - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'user:', user?.email, 'segments:', segments);
 
   useEffect(() => {
     if (isLoading) return; // Don't redirect while loading

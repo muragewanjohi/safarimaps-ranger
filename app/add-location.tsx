@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Dimensions,
     Image,
@@ -236,8 +237,16 @@ export default function AddLocationScreen() {
     }
 
     // Prepare location data
+    const formatCoordinates = (lat: number, lon: number) => {
+      const latAbs = Math.abs(lat).toFixed(6);
+      const lonAbs = Math.abs(lon).toFixed(6);
+      const latHem = lat >= 0 ? 'N' : 'S';
+      const lonHem = lon >= 0 ? 'E' : 'W';
+      return `${latAbs}° ${latHem}, ${lonAbs}° ${lonHem}`;
+    };
+
     const coordinates = selectedLocation 
-      ? `${selectedLocation.latitude.toFixed(6)}°, ${selectedLocation.longitude.toFixed(6)}°`
+      ? formatCoordinates(selectedLocation.latitude, selectedLocation.longitude)
       : 'Location not selected';
 
     const locationData = {
@@ -272,6 +281,24 @@ export default function AddLocationScreen() {
       console.log('Error state:', error);
       
       if (result) {
+        // Reset form fields on success
+        setSelectedCategory('Wildlife');
+        setSelectedSpecies('');
+        setSelectedAttraction('');
+        setSelectedHotel('');
+        setSelectedDining('');
+        setSelectedViewpoint('');
+        setCount('');
+        setDescription('');
+        setAttractionName('');
+        setOperatingHours('');
+        setHotelName('');
+        setContact('');
+        setBestTimeToVisit('');
+        setPhotos([]);
+        setShowMap(false);
+        setSelectedLocation(currentLocation);
+
         Alert.alert(
           'Location Added',
           `Successfully added ${selectedCategory}: ${selectedSubcategory}`,
@@ -740,6 +767,12 @@ export default function AddLocationScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
+          <ThemedText style={styles.loadingTextOverlay}>Saving...</ThemedText>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -1068,6 +1101,22 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 16,
     color: '#fff',
+    fontWeight: '600',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingTextOverlay: {
+    marginTop: 12,
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
   },
 });

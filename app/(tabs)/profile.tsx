@@ -2,9 +2,11 @@ import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePark } from '@/contexts/ParkContext';
+import { dataService } from '@/services/dataService';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    ActionSheetIOS,
     Alert,
     Platform,
     ScrollView,
@@ -24,24 +26,69 @@ export default function ProfileScreen() {
   const [locationSharing, setLocationSharing] = useState(true);
   const [offlineMode, setOfflineMode] = useState(true);
   const [autoSync, setAutoSync] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
+  const [stats, setStats] = useState<{ incidentsReported: number; wildlifeTracked: number; patrolsCompleted: number; daysActive: number }>({
+    incidentsReported: 0,
+    wildlifeTracked: 0,
+    patrolsCompleted: 0,
+    daysActive: 0,
+  });
 
-  // Use user data from auth context
-  const userData = user ? {
-    name: user.name,
-    role: user.role,
-    rangerId: user.rangerId,
-    team: user.team,
-    joinDate: user.joinDate,
-    currentLocation: "Sector A-12", // This could come from user data
-    avatar: user.avatar
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Current user profile
+        const rangerResp = await dataService.getRangerData();
+        if (!isMounted) return;
+        if (rangerResp.success) {
+          setProfile(rangerResp.data);
+        } else {
+          setError(rangerResp.error || 'Failed to load profile');
+        }
+        // Impact stats (reuse dashboard stats for now)
+        const statsResp = await dataService.getDashboardStats(selectedPark?.id);
+        if (!isMounted) return;
+        if (statsResp.success) {
+          setStats({
+            incidentsReported: statsResp.data.reportsToday,
+            wildlifeTracked: statsResp.data.wildlifeTracked,
+            patrolsCompleted: statsResp.data.touristLocations,
+            daysActive: 0,
+          });
+        }
+      } catch (e) {
+        if (isMounted) setError('Failed to load profile');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedPark?.id]);
+
+  // Build user data from DB profile
+  const userData = profile ? {
+    name: profile.name,
+    role: profile.role,
+    rangerId: profile.rangerId || profile.ranger_id || 'N/A',
+    team: profile.team || 'N/A',
+    joinDate: profile.joinDate || profile.joinDate || profile.join_date || 'N/A',
+    currentLocation: selectedPark?.name || 'N/A',
+    avatar: (profile.name?.split(' ').map((s: string) => s[0]).join('') || 'RG').toUpperCase()
   } : {
-    name: "Guest User",
-    role: "Guest",
-    rangerId: "GUEST",
-    team: "N/A",
-    joinDate: "N/A",
-    currentLocation: "N/A",
-    avatar: "GU"
+    name: user?.name || 'Ranger',
+    role: user?.role || 'Ranger',
+    rangerId: user?.rangerId || 'N/A',
+    team: user?.team || 'N/A',
+    joinDate: user?.joinDate || 'N/A',
+    currentLocation: selectedPark?.name || 'N/A',
+    avatar: (user?.name?.split(' ').map((s: string) => s[0]).join('') || 'RG').toUpperCase()
   };
 
   const parkData = selectedPark ? {
@@ -58,12 +105,7 @@ export default function ProfileScreen() {
     established: "N/A"
   };
 
-  const impactStats = {
-    incidentsReported: 247,
-    wildlifeTracked: 1342,
-    patrolsCompleted: 156,
-    daysActive: 1847
-  };
+  const impactStats = stats;
 
   const achievements = [
     {
@@ -104,58 +146,48 @@ export default function ProfileScreen() {
     }
   ];
 
-  const quickActions = [
-    {
-      id: 1,
-      title: "Edit Profile Information",
-      icon: "person.fill",
-      iconColor: "#666",
-      action: () => Alert.alert('Edit Profile', 'Edit profile information feature coming soon!')
-    },
-    {
-      id: 2,
-      title: "App Preferences",
-      icon: "gear",
-      iconColor: "#666",
-      action: () => Alert.alert('App Preferences', 'App preferences feature coming soon!')
-    },
-    {
-      id: 3,
-      title: "Notification Settings",
-      icon: "bell.fill",
-      iconColor: "#666",
-      action: () => Alert.alert('Notifications', 'Notification settings feature coming soon!')
-    },
-    {
-      id: 4,
-      title: "Park Transfer Request",
-      icon: "exclamationmark.triangle.fill",
-      iconColor: "#ff9500",
-      action: () => Alert.alert('Park Transfer', 'Park transfer request feature coming soon!')
-    },
-    {
-      id: 5,
-      title: "Sign Out",
-      icon: "person.fill",
-      iconColor: "#ff6b6b",
-      isDestructive: true,
-      action: () => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+  const openProfileMenu = () => {
+    const onSignOut = async () => {
+      const response = await logout();
+      if (response.success) router.replace('/login');
+      else Alert.alert('Error', 'Failed to sign out. Please try again.');
+    };
+
+    const items = ['Edit Profile', 'App Preferences', 'Notification Settings', 'Park Transfer Request', 'Sign Out', 'Cancel'];
+    const handlers = [
+      () => Alert.alert('Edit Profile', 'Edit profile information feature coming soon!'),
+      () => Alert.alert('App Preferences', 'App preferences feature coming soon!'),
+      () => Alert.alert('Notifications', 'Notification settings feature coming soon!'),
+      () => Alert.alert('Park Transfer', 'Park transfer request feature coming soon!'),
+      () => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive', 
-          onPress: async () => {
-            const response = await logout();
-            if (response.success) {
-              router.replace('/login');
-            } else {
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
-            }
-          }
-        }
+        { text: 'Sign Out', style: 'destructive', onPress: onSignOut }
       ])
+    ];
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: items,
+          cancelButtonIndex: items.length - 1,
+          destructiveButtonIndex: items.length - 2,
+          userInterfaceStyle: 'light'
+        },
+        (index) => {
+          if (index >= 0 && index < handlers.length) handlers[index]!();
+        }
+      );
+    } else {
+      Alert.alert('Menu', 'Choose an option', [
+        { text: 'Edit Profile', onPress: handlers[0] },
+        { text: 'App Preferences', onPress: handlers[1] },
+        { text: 'Notification Settings', onPress: handlers[2] },
+        { text: 'Park Transfer Request', onPress: handlers[3] },
+        { text: 'Sign Out', style: 'destructive', onPress: handlers[4] },
+        { text: 'Cancel', style: 'cancel' }
+      ]);
     }
-  ];
+  };
 
   const handleEditProfile = () => {
     Alert.alert('Edit Profile', 'Edit profile feature coming soon!');
@@ -172,15 +204,20 @@ export default function ProfileScreen() {
           paddingBottom: Platform.OS === 'android' ? 90 + insets.bottom : 110
         }}
       >
-        {/* Title Bar */}
+        {/* Title Bar with overflow menu */}
         <View style={styles.titleBar}>
           <ThemedText style={styles.titleBarText}>SafariMap GameWarden</ThemedText>
+          <TouchableOpacity onPress={openProfileMenu} style={styles.menuButton}>
+            <IconSymbol name="ellipsis" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
 
         {/* Header */}
         <View style={styles.header}>
           <ThemedText style={styles.title}>Profile</ThemedText>
-          <ThemedText style={styles.subtitle}>Your ranger account and settings</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            {loading ? 'Loading profile...' : (error ? 'Failed to load profile' : 'Your ranger account and settings')}
+          </ThemedText>
         </View>
 
         {/* Assigned Park Section */}
@@ -381,9 +418,9 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* App Settings Section */}
+        {/* App Preferences Section */}
         <View style={styles.settingsSection}>
-          <ThemedText style={styles.settingsTitle}>App Settings</ThemedText>
+          <ThemedText style={styles.settingsTitle}>App Preferences</ThemedText>
           <ThemedText style={styles.settingsSubtitle}>Customize your SafariMap experience</ThemedText>
           
           <View style={styles.settingsCard}>
@@ -453,28 +490,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Quick Actions Section */}
-        <View style={styles.quickActionsSection}>
-          <ThemedText style={styles.quickActionsTitle}>Quick Actions</ThemedText>
-          
-          <View style={styles.quickActionsCard}>
-            {quickActions.map((action) => (
-              <TouchableOpacity
-                key={action.id}
-                style={styles.quickActionItem}
-                onPress={action.action}
-              >
-                <IconSymbol name={action.icon} size={20} color={action.iconColor} />
-                <ThemedText style={[
-                  styles.quickActionText,
-                  action.isDestructive && styles.destructiveText
-                ]}>
-                  {action.title}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+        {/* Menu replaces Quick Actions */}
       </ScrollView>
     </SafeAreaView>
   );

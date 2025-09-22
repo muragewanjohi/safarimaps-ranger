@@ -2,18 +2,20 @@ import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { usePark } from '@/contexts/ParkContext';
 import { supabase } from '@/lib/supabase';
+import { locationService } from '@/services/locationService';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -39,6 +41,15 @@ export default function AddReportScreen() {
   const [photos, setPhotos] = useState<{ uri: string; name: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  // Load current GPS on mount
+  useState(() => {
+    (async () => {
+      const loc = await locationService.getCurrentLocation();
+      if (loc) setCurrentLocation(loc);
+    })();
+  });
 
   const categories = [
     'Tourists',
@@ -65,7 +76,7 @@ export default function AddReportScreen() {
   ];
 
   const handleBack = () => {
-    router.back();
+    router.push('/(tabs)/reports');
   };
 
   const handleAddPhoto = async () => {
@@ -141,29 +152,29 @@ export default function AddReportScreen() {
 
     try {
       for (const photo of photos) {
-        // Convert URI to blob
         const response = await fetch(photo.uri);
-        const blob = await response.blob();
+        const contentType = response.headers.get('Content-Type') || 'image/jpeg';
+        const arrayBuffer = await response.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
 
-        // Upload to Supabase storage
+        const extMatch = photo.name.match(/\.([a-zA-Z0-9]+)$/);
+        const ext = (extMatch ? extMatch[1] : (contentType.split('/')?.[1] || 'jpg')).toLowerCase();
+        const objectPath = `incidents/${Date.now()}_${photo.name.replace(/[^a-zA-Z0-9_.-]/g, '')}.${ext}`;
+
         const { data, error } = await supabase.storage
           .from('incident-photos')
-          .upload(`incidents/${photo.name}`, blob, {
-            contentType: 'image/jpeg',
-            upsert: false
-          });
+          .upload(objectPath, bytes, { contentType, upsert: false });
 
         if (error) {
           console.error('Error uploading photo:', error);
           throw new Error(`Failed to upload ${photo.name}: ${error.message}`);
         }
 
-        // Get public URL
         const { data: urlData } = supabase.storage
           .from('incident-photos')
           .getPublicUrl(data.path);
 
-        uploadedUrls.push(urlData.publicUrl);
+        if (urlData?.publicUrl) uploadedUrls.push(urlData.publicUrl);
       }
 
       return uploadedUrls;
@@ -205,31 +216,59 @@ export default function AddReportScreen() {
         }
       }
 
-      const reportData = {
-        category: selectedCategory,
-        severity: selectedSeverity,
-        status: selectedStatus,
-        title,
-        description,
-        coordinates: '-1.5053°, 35.1442°', // GPS coordinates from current location
-        tourists_affected: touristsAffected ? parseInt(touristsAffected) : null,
-        tour_operator: tourOperator || null,
-        contact_info: contactInfo || null,
-        transport: transport || null,
-        medical_condition: medicalCondition || null,
-        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-        photos: photoUrls,
-        created_at: new Date().toISOString(),
-        reported_by: user.id,
-        reported_by_name: 'Current User', // This would come from user profile
-        park_id: selectedPark?.id || null // Add park ID to the report
+      // Map UI selections to DB enums
+      const statusMap: Record<string, 'Reported' | 'In Progress' | 'Resolved'> = {
+        'Open': 'Reported',
+        'In Progress': 'In Progress',
+        'Resolved': 'Resolved',
+        'Escalated': 'Reported'
+      };
+      const severityMap: Record<string, 'Critical' | 'High' | 'Medium' | 'Resolved'> = {
+        'Critical': 'Critical',
+        'High': 'High',
+        'Medium': 'Medium',
+        'Low': 'Medium'
       };
 
-      // Insert the report into Supabase
+      // Coordinates formatting (matches DB constraint)
+      const formatCoordinates = (lat: number, lon: number) => {
+        const latAbs = Math.abs(lat).toFixed(6);
+        const lonAbs = Math.abs(lon).toFixed(6);
+        const latHem = lat >= 0 ? 'N' : 'S';
+        const lonHem = lon >= 0 ? 'E' : 'W';
+        return `${latAbs}° ${latHem}, ${lonAbs}° ${lonHem}`;
+      };
+      const coordinates: string | null = currentLocation
+        ? formatCoordinates(currentLocation.latitude, currentLocation.longitude)
+        : null;
+
+      const parseIntOrNull = (v: string) => {
+        const n = parseInt(v, 10);
+        return Number.isFinite(n) ? n : null;
+      };
+
+      const incidentInsert = {
+        park_id: selectedPark?.id as string,
+        reported_by: user.id,
+        category: selectedCategory || 'Incident',
+        title: title || selectedCategory || 'Incident',
+        description,
+        // Optional incident details
+        tourists_affected: parseIntOrNull(touristsAffected),
+        operator: tourOperator || null,
+        transport: transport || null,
+        medical_condition: medicalCondition || null,
+        location: selectedPark?.name || null,
+        coordinates: coordinates, // keep null to satisfy constraint
+        severity: severityMap[selectedSeverity] ?? 'Medium',
+        status: statusMap[selectedStatus] ?? 'Reported'
+      };
+
       const { data, error } = await supabase
         .from('incidents')
-        .insert([reportData])
-        .select();
+        .insert(incidentInsert)
+        .select()
+        .single();
 
       if (error) {
         console.error('Error saving report:', error);
@@ -238,19 +277,23 @@ export default function AddReportScreen() {
         return;
       }
 
-      Alert.alert(
-        'Report Submitted',
-        `Successfully submitted ${selectedCategory} incident report.`,
-        [
-          { 
-            text: 'OK', 
-            onPress: () => {
-              console.log('Report saved to Supabase:', data);
-              router.back();
-            }
-          }
-        ]
-      );
+      // Clear form on success
+      setSelectedCategory('');
+      setSelectedSeverity('');
+      setSelectedStatus('Open');
+      setTitle('');
+      setDescription('');
+      setTouristsAffected('');
+      setTourOperator('');
+      setContactInfo('');
+      setTransport('');
+      setMedicalCondition('');
+      setTags('');
+      setPhotos([]);
+
+      Alert.alert('Report Submitted', `Successfully submitted ${selectedCategory} incident report.`, [
+        { text: 'OK', onPress: () => router.push('/(tabs)/reports') }
+      ]);
     } catch (error) {
       console.error('Error submitting report:', error);
       Alert.alert('Error', 'An unexpected error occurred while submitting the report.');
@@ -594,6 +637,12 @@ export default function AddReportScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      {isSubmitting && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
+          <ThemedText style={styles.loadingTextOverlay}>{isUploadingPhotos ? 'Uploading photos...' : 'Submitting report...'}</ThemedText>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -881,5 +930,21 @@ const styles = StyleSheet.create({
   submitButtonDisabled: {
     backgroundColor: '#ccc',
     opacity: 0.7,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingTextOverlay: {
+    marginTop: 12,
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

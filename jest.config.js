@@ -1,4 +1,4 @@
-module.exports = {
+clearmodule.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   transformIgnorePatterns: [

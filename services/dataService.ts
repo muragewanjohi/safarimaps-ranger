@@ -1,31 +1,31 @@
 import { AppConfig } from '../config/appConfig';
 import { supabase } from '../lib/supabase';
 import {
-    Achievement,
-    ApiResponse,
-    DashboardStats,
-    EmergencyAlert,
-    ImpactStats,
-    Incident,
-    Location,
-    NewLocation,
-    PaginatedResponse,
-    Park,
-    Ranger,
-    Report
+  Achievement,
+  ApiResponse,
+  DashboardStats,
+  EmergencyAlert,
+  ImpactStats,
+  Incident,
+  Location,
+  NewLocation,
+  PaginatedResponse,
+  Park,
+  Ranger,
+  Report
 } from '../types';
 
 // Import mock data
 import {
-    mockAchievements,
-    mockDashboardStats,
-    mockEmergencyAlerts,
-    mockImpactStats,
-    mockPark,
-    mockRanger,
-    mockRecentIncidents,
-    mockRecentLocations,
-    mockReports
+  mockAchievements,
+  mockDashboardStats,
+  mockEmergencyAlerts,
+  mockImpactStats,
+  mockPark,
+  mockRanger,
+  mockRecentIncidents,
+  mockRecentLocations,
+  mockReports
 } from '../data/mockData';
 
 // Configuration for switching between mock and real data
@@ -299,7 +299,7 @@ export class DataService {
 
       const locationsData: Location[] = (locations || []).map(location => ({
         id: location.id,
-        title: location.name,
+        title: location.title || location.name, // Handle both title and name fields
         category: location.category,
         description: location.description || '',
         coordinates: location.coordinates,
@@ -465,15 +465,41 @@ export class DataService {
 
       // Try to insert with just the essential fields first
       console.log('Attempting to insert location with minimal fields...');
+      console.log('User ID for reported_by:', user.id);
+      console.log('User ID type:', typeof user.id);
       
       const insertData: any = {
         park_id: targetParkId,
+        name: location.attractionName || location.hotelName || location.subcategory || 'Wildlife Sighting',
+        title: location.attractionName || location.hotelName || location.subcategory || 'Wildlife Sighting',
         category: dbCategory,
+        subcategory: location.subcategory,
         description: location.description,
-        coordinates: location.coordinates
+        coordinates: location.coordinates,
+        // Optional fields based on category
+        ...(location.count ? { count: Number(location.count) } : {}),
+        ...(location.operatingHours ? { operating_hours: location.operatingHours } : {}),
+        ...(location.contact ? { contact: location.contact } : {}),
+        ...(location.bestTimeToVisit ? { best_time_to_visit: location.bestTimeToVisit } : {}),
+        reported_by: user.id
       };
 
       console.log('Insert data:', insertData);
+      console.log('Insert data reported_by:', insertData.reported_by);
+      console.log('Insert data reported_by type:', typeof insertData.reported_by);
+
+      // Double-check auth status right before insert
+      const { data: { user: currentUser }, error: authError } = await supabase!.auth.getUser();
+      console.log('Current user before insert:', currentUser?.id);
+      console.log('Auth error before insert:', authError);
+
+      // Test RLS policy with a simple query first
+      console.log('Testing RLS policy with auth.uid()...');
+      const { data: testData, error: testError } = await supabase!
+        .from('locations')
+        .select('id')
+        .limit(1);
+      console.log('Test query result:', testData, 'Test error:', testError);
 
       const { data: newLocation, error: insertError } = await supabase!
         .from('locations')
@@ -488,23 +514,74 @@ export class DataService {
 
       console.log('Location inserted successfully:', newLocation);
 
-      // If there are photos, insert them into location_photos table
+      // If there are photos, ensure we store valid public URLs
+      const uploadedPhotoUrls: string[] = [];
       if (location.photos && location.photos.length > 0) {
-        const photoInserts = location.photos.map(photoUrl => ({
-          location_id: newLocation.id,
-          photo_url: photoUrl,
-          taken_by: user.id
-        }));
+        const bucket = 'location-photos';
+        for (let i = 0; i < location.photos.length; i += 1) {
+          const sourceUri = location.photos[i];
+          try {
+            if (sourceUri.startsWith('http://') || sourceUri.startsWith('https://')) {
+              uploadedPhotoUrls.push(sourceUri);
+              continue;
+            }
 
-        const { error: photosError } = await supabase!
-          .from('location_photos')
-          .insert(photoInserts);
+            if (sourceUri.startsWith('file://') || sourceUri.startsWith('content://')) {
+              const response = await fetch(sourceUri);
+              const contentTypeHeader = response.headers.get('Content-Type') || 'image/jpeg';
+              const arrayBuffer = await response.arrayBuffer();
+              const bytes = new Uint8Array(arrayBuffer);
 
-        if (photosError) {
-          console.error('Error inserting photos:', photosError);
-          // Don't fail the whole operation for photo errors
+              // Try to infer a sensible extension from the uri or content type
+              const uriExtMatch = sourceUri.match(/\.([a-zA-Z0-9]+)$/);
+              const extFromUri = uriExtMatch ? uriExtMatch[1] : undefined;
+              const extFromType = contentTypeHeader.split('/')?.[1] || 'jpg';
+              const finalExt = (extFromUri || extFromType || 'jpg').toLowerCase();
+              const objectPath = `${newLocation.id}/${Date.now()}_${i}.${finalExt}`;
+
+              const { error: uploadError } = await supabase!
+                .storage
+                .from(bucket)
+                .upload(objectPath, bytes, { contentType: contentTypeHeader, upsert: true });
+
+              if (uploadError) {
+                console.error('Photo upload failed:', uploadError);
+                continue;
+              }
+
+              const { data: publicUrlData } = supabase!
+                .storage
+                .from(bucket)
+                .getPublicUrl(objectPath);
+
+              if (publicUrlData?.publicUrl) {
+                uploadedPhotoUrls.push(publicUrlData.publicUrl);
+              }
+            }
+          } catch (e) {
+            console.error('Error processing photo for upload:', e);
+          }
+        }
+
+        if (uploadedPhotoUrls.length > 0) {
+          const photoInserts = uploadedPhotoUrls.map(photoUrl => ({
+            location_id: newLocation.id,
+            photo_url: photoUrl,
+            taken_by: user.id
+          }));
+
+          const { error: photosError } = await supabase!
+            .from('location_photos')
+            .insert(photoInserts);
+
+          if (photosError) {
+            console.error('Error inserting photos:', photosError);
+            // Don't fail the whole operation for photo errors
+          } else {
+            console.log('Photos inserted successfully');
+          }
         } else {
-          console.log('Photos inserted successfully');
+          console.log('No valid photo URLs to insert (skipping photo records).');
         }
       }
 
@@ -521,8 +598,10 @@ export class DataService {
         timeAgo: 'Just now',
         ...(location.operatingHours && { operatingHours: location.operatingHours }),
         ...(location.contact && { contact: location.contact }),
-        ...(location.count && { count: location.count }),
-        ...(location.photos.length > 0 && { photos: location.photos })
+        ...(location.count && { count: Number(location.count) }),
+        ...(uploadedPhotoUrls.length > 0
+          ? { photos: uploadedPhotoUrls }
+          : (location.photos.length > 0 ? { photos: location.photos } : {}))
       };
 
       console.log('Converted to app location:', appLocation);
