@@ -4,12 +4,12 @@ export default {
   expo: {
     name: 'SafariMap GameWarden',
     slug: 'safarimap-gamewarden',
-    version: '1.0.0',
+    version: '1.0.1', // or your desired new version
     orientation: 'portrait',
-    icon: './assets/icon.png',
+    icon: './assets/images/icon.png',
     userInterfaceStyle: 'light',
     splash: {
-      image: './assets/splash.png',
+      image: './assets/images/splash-icon.png',
       resizeMode: 'contain',
       backgroundColor: '#ffffff'
     },
@@ -21,22 +21,24 @@ export default {
       supportsTablet: true,
       config: {
         googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY
-      }
+      },
+      buildNumber: '2', // increment this for iOS
     },
     android: {
       package: 'com.safarimap.gamewarden',
       adaptiveIcon: {
-        foregroundImage: './assets/adaptive-icon.png',
+        foregroundImage: './assets/images/adaptive-icon.png',
         backgroundColor: '#ffffff'
       },
       config: {
         googleMaps: {
           apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY
         }
-      }
+      },
+      versionCode: 2, // increment this for Android
     },
     web: {
-      favicon: './assets/favicon.png'
+      favicon: './assets/images/favicon.png'
     },
     extra: {
       EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
@@ -44,6 +46,9 @@ export default {
       EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY,
       EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY,
       EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY,
+      eas: {
+        projectId: '1ada1c2a-6f91-4733-8760-30e1296a75d4'
+      },
     },
     plugins: [
       'expo-router',
