@@ -4,7 +4,7 @@ export default {
   expo: {
     name: 'SafariMap GameWarden',
     slug: 'safarimap-gamewarden',
-    version: '1.0.2', // or your desired new version
+    version: '1.0.3', // or your desired new version
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     userInterfaceStyle: 'light',
@@ -22,7 +22,7 @@ export default {
       config: {
         googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_IOS_API_KEY
       },
-      buildNumber: '2', // increment this for iOS
+      buildNumber: '3', // increment this for iOS
     },
     android: {
       package: 'com.safarimap.gamewarden',
