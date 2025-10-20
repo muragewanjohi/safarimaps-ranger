@@ -4,7 +4,7 @@ export default {
   expo: {
     name: 'SafariMap GameWarden',
     slug: 'safarimap-gamewarden',
-    version: '1.0.1', // or your desired new version
+    version: '1.0.2', // or your desired new version
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     userInterfaceStyle: 'light',
@@ -30,12 +30,21 @@ export default {
         foregroundImage: './assets/images/adaptive-icon.png',
         backgroundColor: '#ffffff'
       },
+      permissions: [
+        'ACCESS_COARSE_LOCATION',
+        'ACCESS_FINE_LOCATION',
+        'CAMERA',
+        'READ_EXTERNAL_STORAGE',
+        'WRITE_EXTERNAL_STORAGE',
+        'READ_MEDIA_IMAGES',
+        'READ_MEDIA_VIDEO'
+      ],
       config: {
         googleMaps: {
           apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY
         }
       },
-      versionCode: 2, // increment this for Android
+      versionCode: 3, // increment this for Android
     },
     web: {
       favicon: './assets/images/favicon.png'
@@ -56,6 +65,21 @@ export default {
         'expo-location',
         {
           locationAlwaysAndWhenInUsePermission: 'Allow SafariMap to use your location for wildlife tracking and park navigation.'
+        }
+      ],
+      [
+        'expo-image-picker',
+        {
+          photosPermission: 'Allow SafariMap to access your photos to capture wildlife sightings and incidents.',
+          cameraPermission: 'Allow SafariMap to access your camera to capture wildlife sightings and incidents.'
+        }
+      ],
+      [
+        'expo-media-library',
+        {
+          photosPermission: 'Allow SafariMap to save photos of wildlife sightings and incidents.',
+          savePhotosPermission: 'Allow SafariMap to save photos to your device.',
+          isAccessMediaLocationEnabled: true
         }
       ]
     ]
