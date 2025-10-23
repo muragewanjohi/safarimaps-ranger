@@ -1,3 +1,4 @@
+import ParkMapCard, { ParkMapLocation } from '@/components/ParkMapCard';
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
@@ -35,9 +36,173 @@ export default function HomeScreen() {
   const [isOffline] = useState(false); // Mock offline state
   const [pressedCard, setPressedCard] = useState<string | null>(null);
   const [pendingSyncItems] = useState(2); // Mock pending sync items
-  
+
+  // Get park-specific map data based on selected park
+  const getParkMapData = (parkId: string): ParkMapLocation[] => {
+    // Different parks have different locations and routes
+    switch (parkId) {
+      case '3467cff0-ca7d-4c6c-ad28-2d202f2372ce': // Masai Mara
+        return [
+          {
+            id: '1',
+            latitude: -1.2921,
+            longitude: 35.5739,
+            title: 'Lion Pride',
+            description: 'Large pride of 12 lions spotted',
+            type: 'wildlife'
+          },
+          {
+            id: '2',
+            latitude: -1.2850,
+            longitude: 35.5800,
+            title: 'Elephant Herd',
+            description: 'Family of 8 elephants',
+            type: 'wildlife'
+          },
+          {
+            id: '3',
+            latitude: -1.3000,
+            longitude: 35.5600,
+            title: 'Mara Serena Lodge',
+            description: 'Luxury safari lodge',
+            type: 'hotel'
+          },
+          {
+            id: '4',
+            latitude: -1.2750,
+            longitude: 35.5900,
+            title: 'Mara River Crossing',
+            description: 'Famous wildebeest crossing point',
+            type: 'attraction'
+          },
+          {
+            id: '5',
+            latitude: -1.2900,
+            longitude: 35.5750,
+            title: 'Ranger Station Alpha',
+            description: 'Main ranger station',
+            type: 'ranger'
+          }
+        ];
+      case '0dba0933-f39f-4c78-a943-45584f383d20': // Nairobi National Park
+        return [
+          {
+            id: '1',
+            latitude: -1.3733,
+            longitude: 36.8129,
+            title: 'Nairobi Safari Walk',
+            description: 'Educational wildlife walk',
+            type: 'attraction'
+          },
+          {
+            id: '2',
+            latitude: -1.3800,
+            longitude: 36.8200,
+            title: 'Rhino Sanctuary',
+            description: 'Black rhino conservation area',
+            type: 'wildlife'
+          },
+          {
+            id: '3',
+            latitude: -1.3700,
+            longitude: 36.8100,
+            title: 'Nairobi Safari Lodge',
+            description: 'Luxury accommodation',
+            type: 'hotel'
+          }
+        ];
+      case 'dc9b8bdc-7e14-4219-a35a-0ab1fb0a4513': // Meru National Park
+        return [
+          {
+            id: '1',
+            latitude: 0.0833,
+            longitude: 38.2000,
+            title: 'Meru Rhino Sanctuary',
+            description: 'White rhino breeding program',
+            type: 'wildlife'
+          },
+          {
+            id: '2',
+            latitude: 0.1000,
+            longitude: 38.2200,
+            title: 'Elsa\'s Kopje',
+            description: 'Historic lion conservation site',
+            type: 'attraction'
+          }
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const getParkRoutes = (parkId: string): ParkMapLocation[] => {
+    switch (parkId) {
+      case '3467cff0-ca7d-4c6c-ad28-2d202f2372ce': // Masai Mara
+        return [
+          { latitude: -1.2921, longitude: 35.5739 },
+          { latitude: -1.2850, longitude: 35.5800 },
+          { latitude: -1.3000, longitude: 35.5600 },
+          { latitude: -1.2750, longitude: 35.5900 },
+          { latitude: -1.2900, longitude: 35.5750 },
+          { latitude: -1.2921, longitude: 35.5739 }
+        ];
+      case '0dba0933-f39f-4c78-a943-45584f383d20': // Nairobi National Park
+        return [
+          { latitude: -1.3733, longitude: 36.8129 },
+          { latitude: -1.3800, longitude: 36.8200 },
+          { latitude: -1.3700, longitude: 36.8100 },
+          { latitude: -1.3733, longitude: 36.8129 }
+        ];
+      case 'dc9b8bdc-7e14-4219-a35a-0ab1fb0a4513': // Meru National Park
+        return [
+          { latitude: 0.0833, longitude: 38.2000 },
+          { latitude: 0.1000, longitude: 38.2200 },
+          { latitude: 0.0833, longitude: 38.2000 }
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const getParkRegion = (parkId: string) => {
+    switch (parkId) {
+      case '3467cff0-ca7d-4c6c-ad28-2d202f2372ce': // Masai Mara
+        return {
+          latitude: -1.2921,
+          longitude: 35.5739,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        };
+      case '0dba0933-f39f-4c78-a943-45584f383d20': // Nairobi National Park
+        return {
+          latitude: -1.3733,
+          longitude: 36.8129,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        };
+      case 'dc9b8bdc-7e14-4219-a35a-0ab1fb0a4513': // Meru National Park
+        return {
+          latitude: 0.0833,
+          longitude: 38.2000,
+          latitudeDelta: 0.1,
+          longitudeDelta: 0.1,
+        };
+      default:
+        return {
+          latitude: -1.2921,
+          longitude: 35.5739,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        };
+    }
+  };
+
   // Use park context
   const { selectedPark, setSelectedPark, availableParks, isLoading: parkLoading } = usePark();
+  
+  // Get park-specific map data
+  const parkMapData = selectedPark ? getParkMapData(selectedPark.id) : [];
+  const parkRoutes = selectedPark ? getParkRoutes(selectedPark.id) : [];
   
   // Use data service hooks
   const { data: rangerData, loading: rangerLoading, error: rangerError } = useRangerData();
@@ -316,6 +481,15 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Park Map Card */}
+        <ParkMapCard
+          parkName={selectedPark.name}
+          parkRegion={getParkRegion(selectedPark.id)}
+          markers={parkMapData}
+          routes={parkRoutes}
+          onPress={() => router.push('/(tabs)/explore')}
+        />
 
         {/* Park Details Card */}
         <TouchableOpacity 

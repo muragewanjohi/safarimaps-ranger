@@ -1,6 +1,7 @@
 import MapViewComponent, { MapLocation, MapRegion } from '@/components/MapView';
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { usePark } from '@/contexts/ParkContext';
 import { locationService } from '@/services/locationService';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -18,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const { height } = Dimensions.get('window');
 
 export default function MapScreen() {
+  const { selectedPark } = usePark();
   const [selectedFilter, setSelectedFilter] = useState('All Locations');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [mapMarkers, setMapMarkers] = useState<MapLocation[]>([]);
@@ -166,7 +168,9 @@ export default function MapScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <ThemedText style={styles.title}>Map View</ThemedText>
-            <ThemedText style={styles.subtitle}>Masai Mara National Reserve - Locations & Points of Interest</ThemedText>
+            <ThemedText style={styles.subtitle}>
+              {selectedPark ? `${selectedPark.name} - Locations & Points of Interest` : 'Loading park data...'}
+            </ThemedText>
           </View>
           <TouchableOpacity style={styles.addLocationButton} onPress={handleAddLocation}>
             <IconSymbol name="plus" size={16} color="#fff" />

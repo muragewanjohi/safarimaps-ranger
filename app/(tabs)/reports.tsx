@@ -5,14 +5,14 @@ import { useIncidents } from '@/hooks/useIncidents';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -70,19 +70,19 @@ export default function ReportsScreen() {
     setShowFilterDropdown(false);
   };
 
-  const handleUpdateStatus = (incidentId: number) => {
+  const handleUpdateStatus = (incidentId: string | number) => {
     Alert.alert('Update Status', `Update status for incident ${incidentId} - Feature coming soon!`);
   };
 
-  const handleAddNote = (incidentId: number) => {
+  const handleAddNote = (incidentId: string | number) => {
     Alert.alert('Add Note', `Add note for incident ${incidentId} - Feature coming soon!`);
   };
 
-  const handleEscalate = (incidentId: number) => {
+  const handleEscalate = (incidentId: string | number) => {
     Alert.alert('Escalate', `Escalate incident ${incidentId} - Feature coming soon!`);
   };
 
-  const handleRouteInfo = (incidentId: number) => {
+  const handleRouteInfo = (incidentId: string | number) => {
     Alert.alert('Route Info', `Show route information for incident ${incidentId} - Feature coming soon!`);
   };
 
