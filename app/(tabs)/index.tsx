@@ -43,45 +43,171 @@ export default function HomeScreen() {
     switch (parkId) {
       case '3467cff0-ca7d-4c6c-ad28-2d202f2372ce': // Masai Mara
         return [
+          // Camps & Lodges
           {
-            id: '1',
-            latitude: -1.2921,
-            longitude: 35.5739,
-            title: 'Lion Pride',
-            description: 'Large pride of 12 lions spotted',
-            type: 'wildlife'
-          },
-          {
-            id: '2',
-            latitude: -1.2850,
-            longitude: 35.5800,
-            title: 'Elephant Herd',
-            description: 'Family of 8 elephants',
-            type: 'wildlife'
-          },
-          {
-            id: '3',
-            latitude: -1.3000,
-            longitude: 35.5600,
-            title: 'Mara Serena Lodge',
-            description: 'Luxury safari lodge',
+            id: 'camp-1',
+            latitude: -1.4056,
+            longitude: 35.1136,
+            title: 'Mara Ngenche',
+            description: 'Luxury safari camp',
             type: 'hotel'
           },
           {
-            id: '4',
-            latitude: -1.2750,
-            longitude: 35.5900,
-            title: 'Mara River Crossing',
-            description: 'Famous wildebeest crossing point',
+            id: 'camp-2',
+            latitude: -1.4067,
+            longitude: 35.1156,
+            title: 'Matira Bush Camp',
+            description: 'Authentic bush camp experience',
+            type: 'hotel'
+          },
+          {
+            id: 'camp-3',
+            latitude: -1.4078,
+            longitude: 35.1176,
+            title: 'Ashnil Mara Camp',
+            description: 'Premium tented camp',
+            type: 'hotel'
+          },
+          {
+            id: 'camp-4',
+            latitude: -1.4089,
+            longitude: 35.1196,
+            title: 'Ishara Mara',
+            description: 'Boutique safari camp',
+            type: 'hotel'
+          },
+          {
+            id: 'camp-5',
+            latitude: -1.4100,
+            longitude: 35.1216,
+            title: 'Julia\'s River Camp',
+            description: 'Riverside camp',
+            type: 'hotel'
+          },
+          {
+            id: 'camp-6',
+            latitude: -1.4111,
+            longitude: 35.1236,
+            title: 'Fig Tree Camp',
+            description: 'Classic safari camp',
+            type: 'hotel'
+          },
+          {
+            id: 'camp-7',
+            latitude: -1.4122,
+            longitude: 35.1256,
+            title: 'Basecamp Maasai Mara',
+            description: 'Eco-friendly camp',
+            type: 'hotel'
+          },
+          {
+            id: 'camp-8',
+            latitude: -1.4133,
+            longitude: 35.1276,
+            title: 'AA Lodge Masai Mara',
+            description: 'Comfortable lodge accommodation',
+            type: 'hotel'
+          },
+          // Wildebeest Crossings
+          {
+            id: 'crossing-1',
+            latitude: -1.4144,
+            longitude: 35.1296,
+            title: 'Kuni Beach Wildebeest Crossing',
+            description: 'Major wildebeest migration crossing point',
             type: 'attraction'
           },
           {
-            id: '5',
-            latitude: -1.2900,
-            longitude: 35.5750,
-            title: 'Ranger Station Alpha',
-            description: 'Main ranger station',
-            type: 'ranger'
+            id: 'crossing-2',
+            latitude: -1.4155,
+            longitude: 35.1316,
+            title: 'Entim Wildebeest Crossing Point',
+            description: 'Wildebeest migration route',
+            type: 'attraction'
+          },
+          // Viewpoints & Lookouts
+          {
+            id: 'viewpoint-1',
+            latitude: -1.4166,
+            longitude: 35.1336,
+            title: 'Leopard Lookout',
+            description: 'Scenic viewpoint for wildlife watching',
+            type: 'attraction'
+          },
+          {
+            id: 'viewpoint-2',
+            latitude: -1.4177,
+            longitude: 35.1356,
+            title: 'Viewpoint over the Mara River',
+            description: 'Panoramic view of the Mara River',
+            type: 'attraction'
+          },
+          {
+            id: 'viewpoint-3',
+            latitude: -1.4188,
+            longitude: 35.1376,
+            title: 'Lookout Hill',
+            description: 'Elevated viewpoint',
+            type: 'attraction'
+          },
+          // Other Landmarks
+          {
+            id: 'landmark-1',
+            latitude: -1.4199,
+            longitude: 35.1396,
+            title: 'Maasai Mara National Reserve',
+            description: 'Main reserve entrance',
+            type: 'attraction'
+          },
+          {
+            id: 'landmark-2',
+            latitude: -1.4210,
+            longitude: 35.1416,
+            title: 'Amos Transmara Point',
+            description: 'Key geographical marker',
+            type: 'attraction'
+          },
+          {
+            id: 'landmark-3',
+            latitude: -1.4221,
+            longitude: 35.1436,
+            title: 'Masai Village',
+            description: 'Traditional Maasai village',
+            type: 'attraction'
+          },
+          {
+            id: 'landmark-4',
+            latitude: -1.4232,
+            longitude: 35.1456,
+            title: 'Balloons Take-off Point',
+            description: 'Hot air balloon launch site',
+            type: 'attraction'
+          },
+          // River Crossings
+          {
+            id: 'river-1',
+            latitude: -1.4243,
+            longitude: 35.1476,
+            title: 'River Crossing Point',
+            description: 'Vehicle river crossing',
+            type: 'attraction'
+          },
+          // Wildlife Sightings
+          {
+            id: 'wildlife-1',
+            latitude: -1.3956,
+            longitude: 35.1000,
+            title: 'Lion Pride',
+            description: 'Large pride spotted',
+            type: 'wildlife'
+          },
+          {
+            id: 'wildlife-2',
+            latitude: -1.3967,
+            longitude: 35.1020,
+            title: 'Elephant Herd',
+            description: 'Family of 8 elephants',
+            type: 'wildlife'
           }
         ];
       case '0dba0933-f39f-4c78-a943-45584f383d20': // Nairobi National Park
@@ -168,10 +294,10 @@ export default function HomeScreen() {
     switch (parkId) {
       case '3467cff0-ca7d-4c6c-ad28-2d202f2372ce': // Masai Mara
         return {
-          latitude: -1.2921,
-          longitude: 35.5739,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+          latitude: -1.4065,
+          longitude: 35.1228,
+          latitudeDelta: 0.25,
+          longitudeDelta: 0.25,
         };
       case '0dba0933-f39f-4c78-a943-45584f383d20': // Nairobi National Park
         return {

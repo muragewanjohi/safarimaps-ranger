@@ -126,10 +126,13 @@ export default function ParkMapCard({
             showsMyLocationButton={false}
             showsCompass={false}
             showsScale={false}
-            mapType="satellite"
+            mapType="standard"
             loadingEnabled={true}
             loadingIndicatorColor="#2E7D32"
             loadingBackgroundColor="#f5f5f5"
+            showsTraffic={false}
+            showsBuildings={true}
+            showsIndoors={false}
           >
             {/* Park Routes */}
             {routes.length > 0 && (
