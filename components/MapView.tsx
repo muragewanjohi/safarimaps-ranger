@@ -12,7 +12,7 @@ export interface MapLocation {
   longitude: number;
   title?: string;
   description?: string;
-  type?: 'wildlife' | 'incident' | 'park' | 'ranger';
+  type?: 'wildlife' | 'incident' | 'attraction' | 'hotel' | 'ranger' | 'route' | 'viewpoint' | 'park';
   id?: string;
 }
 
@@ -33,6 +33,7 @@ interface MapViewComponentProps {
   trailCoordinates?: MapLocation[];
   mode?: 'view' | 'select' | 'track';
   onMapPress?: (coordinate: { latitude: number; longitude: number }) => void;
+  mapType?: 'standard' | 'satellite' | 'hybrid' | 'terrain';
 }
 
 export default function MapViewComponent({
@@ -44,7 +45,8 @@ export default function MapViewComponent({
   showTrail = false,
   trailCoordinates = [],
   mode = 'view',
-  onMapPress
+  onMapPress,
+  mapType = 'satellite'
 }: MapViewComponentProps) {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -57,6 +59,15 @@ export default function MapViewComponent({
     }
   );
   const mapRef = useRef<MapView>(null);
+
+  // Update region when initialRegion prop changes
+  useEffect(() => {
+    if (initialRegion) {
+      setRegion(initialRegion);
+      // Animate map to new region
+      mapRef.current?.animateToRegion(initialRegion, 1000);
+    }
+  }, [initialRegion]);
 
   useEffect(() => {
     getCurrentLocation();
@@ -110,8 +121,12 @@ export default function MapViewComponent({
     switch (type) {
       case 'wildlife': return '#4CAF50';
       case 'incident': return '#F44336';
+      case 'attraction': return '#2196F3';
+      case 'hotel': return '#FF9800';
+      case 'ranger': return '#9C27B0';
+      case 'route': return '#2E7D32';
+      case 'viewpoint': return '#2196F3';
       case 'park': return '#2196F3';
-      case 'ranger': return '#FF9800';
       default: return '#666666';
     }
   };
@@ -142,17 +157,20 @@ export default function MapViewComponent({
         ref={mapRef}
         style={styles.map}
         provider={PROVIDER_GOOGLE}
-        initialRegion={region}
+        initialRegion={initialRegion || region}
         onRegionChangeComplete={handleRegionChangeComplete}
         onPress={handleMapPress}
         showsUserLocation={showUserLocation}
         showsMyLocationButton={true}
         showsCompass={true}
         showsScale={true}
-        mapType="satellite"
+        mapType={mapType}
         loadingEnabled={true}
         loadingIndicatorColor="#2E7D32"
         loadingBackgroundColor="#f5f5f5"
+        showsTraffic={false}
+        showsBuildings={true}
+        showsIndoors={false}
       >
         {/* User Location Circle */}
         {location && showUserLocation && (
@@ -168,13 +186,13 @@ export default function MapViewComponent({
           />
         )}
 
-        {/* Trail Path */}
+        {/* Trail Path / Routes */}
         {showTrail && trailCoordinates.length > 0 && (
           <Polyline
             coordinates={trailCoordinates}
             strokeColor="#2E7D32"
             strokeWidth={3}
-            lineDashPattern={[5, 5]}
+            lineDashPattern={[8, 4]}
           />
         )}
 
@@ -210,8 +228,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   map: {
-    width: width,
-    height: height,
+    flex: 1,
   },
   errorContainer: {
     flex: 1,

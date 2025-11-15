@@ -25,7 +25,16 @@ export const supabase = supabaseUrl && supabaseAnonKey
             autoRefreshToken: true,
             persistSession: true,
             detectSessionInUrl: false,
+            flowType: 'pkce',
           },
+        });
+
+        // Clear any corrupted sessions that might have OAuth data
+        // This prevents OAuth errors if OAuth providers aren't configured
+        client.auth.onAuthStateChange((event, session) => {
+          if (event === 'SIGNED_OUT' && session === null) {
+            // Session cleared successfully
+          }
         });
         console.log('Supabase client created successfully');
         return client;

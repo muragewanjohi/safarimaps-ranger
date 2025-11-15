@@ -4,12 +4,12 @@ export default {
   expo: {
     name: 'SafariMap GameWarden',
     slug: 'safarimap-gamewarden',
-    version: '1.0.3', // or your desired new version
+    version: '1.0.4', // or your desired new version
     orientation: 'portrait',
-    icon: './assets/images/icon.png',
+    icon: './assets/images/logo.png',
     userInterfaceStyle: 'light',
     splash: {
-      image: './assets/images/splash-icon.png',
+      image: './assets/images/logo.png',
       resizeMode: 'contain',
       backgroundColor: '#ffffff'
     },
@@ -27,7 +27,7 @@ export default {
     android: {
       package: 'com.safarimap.gamewarden',
       adaptiveIcon: {
-        foregroundImage: './assets/images/adaptive-icon.png',
+        foregroundImage: './assets/images/logo.png',
         backgroundColor: '#ffffff'
       },
       permissions: [
@@ -44,7 +44,7 @@ export default {
           apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY
         }
       },
-      versionCode: 3, // increment this for Android
+      versionCode: 5, // increment this for Android
     },
     web: {
       favicon: './assets/images/favicon.png'
@@ -61,6 +61,15 @@ export default {
     },
     plugins: [
       'expo-router',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/images/logo.png',
+          imageWidth: 200,
+          resizeMode: 'contain',
+          backgroundColor: '#ffffff'
+        }
+      ],
       [
         'expo-location',
         {

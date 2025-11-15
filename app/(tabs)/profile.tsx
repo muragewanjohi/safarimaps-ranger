@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import {
     ActionSheetIOS,
     Alert,
+    Image,
     Platform,
     ScrollView,
     StatusBar,
@@ -206,7 +207,14 @@ export default function ProfileScreen() {
       >
         {/* Title Bar with overflow menu */}
         <View style={styles.titleBar}>
-          <ThemedText style={styles.titleBarText}>SafariMap GameWarden</ThemedText>
+          <View style={styles.titleBarContent}>
+            <Image 
+              source={require('@/assets/images/logo.png')} 
+              style={styles.titleBarLogo}
+              resizeMode="contain"
+            />
+            <ThemedText style={styles.titleBarText}>SafariMap GameWarden</ThemedText>
+          </View>
           <TouchableOpacity onPress={openProfileMenu} style={styles.menuButton}>
             <IconSymbol name="ellipsis" size={20} color="#fff" />
           </TouchableOpacity>
@@ -506,19 +514,45 @@ const styles = StyleSheet.create({
   },
   titleBar: {
     backgroundColor: '#2E7D32',
-    paddingVertical: 18,
+    paddingTop: Platform.OS === 'ios' ? 8 : 12,
+    paddingBottom: 16,
     paddingHorizontal: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+    borderBottomWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titleBarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 12,
+    flex: 1,
+  },
+  titleBarLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    padding: 4,
   },
   titleBarText: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#fff',
-    textAlign: 'center',
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  menuButton: {
+    padding: 8,
+    marginLeft: 12,
   },
   header: {
     padding: 20,

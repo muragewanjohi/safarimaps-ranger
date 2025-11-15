@@ -21,14 +21,14 @@ export interface Incident {
   reported_by_name: string;
 }
 
-export function useIncidents() {
+export function useIncidents(parkId?: string | null) {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadIncidents();
-  }, []);
+  }, [parkId]);
 
   const loadIncidents = async () => {
     try {
@@ -36,10 +36,16 @@ export function useIncidents() {
       setError(null);
       setIncidents([]); // Reset incidents to empty array
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('incidents')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
+
+      // Filter by park_id if parkId is provided
+      if (parkId) {
+        query = query.eq('park_id', parkId);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading incidents:', error);

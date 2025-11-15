@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -23,8 +24,8 @@ export default function ReportsScreen() {
   // Get selected park from context
   const { selectedPark } = usePark();
   
-  // Load incidents from Supabase
-  const { incidents, loading, error, refreshIncidents } = useIncidents();
+  // Load incidents from Supabase, filtered by selected park
+  const { incidents, loading, error, refreshIncidents } = useIncidents(selectedPark?.id);
 
   const filterOptions = [
     'All Incidents',
@@ -152,7 +153,7 @@ export default function ReportsScreen() {
               </TouchableOpacity>
             </View>
             <ThemedText style={styles.subtitle}>
-              Security, wildlife, and infrastructure incidents in Masai Mara National Reserve
+              Security, wildlife, and infrastructure incidents {selectedPark ? `in ${selectedPark.name}` : ''}
             </ThemedText>
           </View>
           <TouchableOpacity style={styles.newReportButton} onPress={handleNewReport}>
@@ -384,36 +385,37 @@ const styles = StyleSheet.create({
   },
   titleBar: {
     backgroundColor: '#2E7D32',
-    paddingTop: 12,
+    paddingTop: Platform.OS === 'ios' ? 8 : 12,
     paddingBottom: 16,
     paddingHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+    borderBottomWidth: 0,
   },
   titleBarContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
+    justifyContent: 'flex-start',
+    gap: 12,
   },
   titleBarLogo: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 6,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    padding: 4,
   },
   titleBarText: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: '#fff',
-    letterSpacing: 0.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowRadius: 3,
   },
   parkIndicator: {
     flexDirection: 'row',

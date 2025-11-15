@@ -15,11 +15,13 @@ type IconSymbolName = keyof typeof MAPPING;
  */
 const MAPPING = {
   'house.fill': 'home',
+  'house': 'home',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'chevron.down': 'keyboard-arrow-down',
   'exclamationmark.triangle.fill': 'warning',
+  'exclamationmark.triangle': 'warning',
   'location.fill': 'location-on',
   'eye.fill': 'visibility',
   'person.2.fill': 'group',
@@ -29,10 +31,13 @@ const MAPPING = {
   'pawprint.fill': 'pets',
   'bell.fill': 'notifications',
   'person.circle.fill': 'account-circle',
+  'person.fill': 'account-circle',
+  'person': 'account-circle',
   'wifi.slash': 'wifi-off',
   'plus': 'add',
   'plus.circle.fill': 'add-circle',
   'map.fill': 'map',
+  'map': 'map',
   'doc.text.fill': 'description',
   'clock.fill': 'access-time',
   'checkmark': 'check',
@@ -45,6 +50,7 @@ const MAPPING = {
   'xmark': 'close',
   'leaf.fill': 'eco',
   'badge.plus.radiowaves.right': 'badge',
+  'ellipsis': 'more-vert',
 } as IconMapping;
 
 /**
