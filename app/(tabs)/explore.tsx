@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingTop: 20,
     paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingBottom: 80,
   },
   locationsTitle: {
     fontSize: 18,

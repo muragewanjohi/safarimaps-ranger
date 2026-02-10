@@ -202,7 +202,7 @@ export default function ProfileScreen() {
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: Platform.OS === 'android' ? 90 + insets.bottom : 110
+          paddingBottom: 80 + insets.bottom
         }}
       >
         {/* Title Bar with overflow menu */}
@@ -949,7 +949,6 @@ const styles = StyleSheet.create({
   quickActionsSection: {
     margin: 20,
     marginTop: 0,
-    marginBottom: 100,
   },
   quickActionsTitle: {
     fontSize: 18,

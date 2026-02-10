@@ -1,95 +1,84 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
-import { useColorScheme } from '@/hooks/useColorScheme';
+
+const ACTIVE_COLOR = '#2E7D32';
+const INACTIVE_COLOR = '#8E8E93';
+
+function TabIcon({
+  name,
+  focusedName,
+  color,
+  focused,
+  size = 24,
+}: Readonly<{
+  name: React.ComponentProps<typeof Ionicons>['name'];
+  focusedName: React.ComponentProps<typeof Ionicons>['name'];
+  color: string;
+  focused: boolean;
+  size?: number;
+}>) {
+  return (
+    <View style={styles.iconContainer}>
+      <Ionicons name={focused ? focusedName : name} size={size} color={color} />
+      {focused && <View style={styles.activeIndicator} />}
+    </View>
+  );
+}
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, 4);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.75)',
+        tabBarActiveTintColor: ACTIVE_COLOR,
+        tabBarInactiveTintColor: INACTIVE_COLOR,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarShowLabel: true,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: 'absolute',
-            backgroundColor: '#2E7D32',
-            borderTopWidth: 0,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 20,
-            elevation: 20,
-            height: 88 + insets.bottom,
-            paddingBottom: insets.bottom + 8,
-            paddingTop: 12,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            borderWidth: 0,
-          },
-          android: {
-            backgroundColor: '#2E7D32',
-            borderTopWidth: 0,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 20,
-            elevation: 20,
-            height: 76 + insets.bottom,
-            paddingBottom: insets.bottom + 8,
-            paddingTop: 12,
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            borderWidth: 0,
-          },
-          default: {
-            backgroundColor: '#2E7D32',
-            borderTopWidth: 0,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 20,
-            elevation: 20,
-            height: 76 + insets.bottom,
-            paddingBottom: insets.bottom + 8,
-            paddingTop: 12,
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            borderWidth: 0,
-          },
-        }),
+        tabBarStyle: {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: 'rgba(0, 0, 0, 0.12)',
+          height: 56 + bottomPadding,
+          paddingBottom: bottomPadding,
+          paddingTop: 6,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -1 },
+              shadowOpacity: 0.06,
+              shadowRadius: 8,
+            },
+            android: {
+              elevation: 8,
+            },
+            default: {},
+          }),
+        },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-          marginTop: 6,
-          letterSpacing: 0.3,
-          lineHeight: 14,
+          fontSize: 11,
+          fontWeight: '500',
+          marginTop: 2,
+          letterSpacing: 0.1,
         },
         tabBarIconStyle: {
-          marginTop: 0,
+          marginBottom: -2,
         },
         tabBarItemStyle: {
-          paddingVertical: 8,
-          paddingHorizontal: 4,
+          paddingTop: 4,
         },
       }}>
       <Tabs.Screen
@@ -97,10 +86,11 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={28} 
-              name={focused ? "house.fill" : "house"} 
-              color={color || (focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.75)')} 
+            <TabIcon
+              name="home-outline"
+              focusedName="home"
+              color={color}
+              focused={focused}
             />
           ),
         }}
@@ -110,10 +100,11 @@ export default function TabLayout() {
         options={{
           title: 'Map',
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={28} 
-              name={focused ? "map.fill" : "map"} 
-              color={color || (focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.75)')} 
+            <TabIcon
+              name="map-outline"
+              focusedName="map"
+              color={color}
+              focused={focused}
             />
           ),
         }}
@@ -123,10 +114,11 @@ export default function TabLayout() {
         options={{
           title: 'Reports',
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={28} 
-              name={focused ? "exclamationmark.triangle.fill" : "exclamationmark.triangle"} 
-              color={color || (focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.75)')} 
+            <TabIcon
+              name="warning-outline"
+              focusedName="warning"
+              color={color}
+              focused={focused}
             />
           ),
         }}
@@ -136,10 +128,11 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={28} 
-              name={focused ? "person.fill" : "person"} 
-              color={color || (focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.75)')} 
+            <TabIcon
+              name="person-outline"
+              focusedName="person"
+              color={color}
+              focused={focused}
             />
           ),
         }}
@@ -147,3 +140,20 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 28,
+    width: 48,
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: -4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: ACTIVE_COLOR,
+  },
+});

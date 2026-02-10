@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
   },
   incidentsSection: {
     padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 80,
   },
   incidentCard: {
     backgroundColor: '#fff',

@@ -491,7 +491,7 @@ export default function HomeScreen() {
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: Platform.OS === 'android' ? 90 + insets.bottom : 110
+          paddingBottom: 80 + insets.bottom,
         }}
       >
         {/* Title Bar */}
@@ -1542,7 +1542,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     margin: 20,
     marginTop: 0,
-    marginBottom: 100,
     borderRadius: 12,
     padding: 20,
     paddingBottom: 32,
@@ -1600,7 +1599,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: Platform.OS === 'android' ? 110 : 100,
+    bottom: 80 + (Platform.OS === 'android' ? 8 : 0),
     right: 20,
     width: 56,
     height: 56,

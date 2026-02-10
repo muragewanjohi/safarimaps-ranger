@@ -90,7 +90,8 @@ export default {
           savePhotosPermission: 'Allow SafariMap to save photos to your device.',
           isAccessMediaLocationEnabled: true
         }
-      ]
+      ],
+      'expo-web-browser'
     ]
   }
 };
